@@ -10,7 +10,7 @@ impl From<Instant> for f64 {
 }
 
 impl Instant {
-    pub fn elapsed_periods(self, since: Instant) -> f64 {
+    pub fn elapsed_periods_since(self, since: Instant) -> f64 {
         self.0 - since.0
     }
 }

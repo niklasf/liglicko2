@@ -7,6 +7,12 @@ use crate::Instant;
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
 pub struct RatingScalar(pub f64);
 
+impl RatingScalar {
+    pub fn clamp(self, RatingScalar(min): RatingScalar, RatingScalar(max): RatingScalar) -> RatingScalar {
+        RatingScalar(f64::from(self).clamp(min, max))
+    }
+}
+
 impl From<RatingScalar> for f64 {
     fn from(RatingScalar(rating): RatingScalar) -> f64 {
         rating
@@ -60,6 +66,10 @@ impl From<RatingDifference> for f64 {
 }
 
 impl RatingDifference {
+    pub fn clamp(self, RatingDifference(min): RatingDifference, RatingDifference(max): RatingDifference) -> RatingDifference {
+        RatingDifference(f64::from(self).clamp(min, max))
+    }
+
     pub fn abs(self) -> RatingDifference {
         RatingDifference(self.0.abs())
     }

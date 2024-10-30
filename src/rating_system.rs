@@ -1,7 +1,11 @@
 use std::default;
 
-use crate::{internal_rating::InternalRatingDifference, rating::{Rating, RatingDifference, RatingScalar, Volatility}};
+use crate::Instant;
 use crate::Score;
+use crate::{
+    internal_rating::InternalRatingDifference,
+    rating::{Rating, RatingDifference, RatingScalar, Volatility},
+};
 use std::f64::consts::PI;
 
 #[derive(Debug, Clone)]
@@ -173,12 +177,34 @@ impl RatingSystem {
     pub fn tau(&self) -> f64 {
         self.tau
     }
+
+    pub fn preview_deviation(&self, rating: &Rating, now: Instant) -> RatingDifference {
+        RatingDifference::from(new_deviation(
+            rating.deviation.into(),
+            rating.volatility,
+            f64::max(now.elapsed_periods_since(rating.at), 0.0),
+        ))
+        .clamp(self.min_deviation, self.max_deviation)
+    }
 }
 
 fn g(InternalRatingDifference(deviation): InternalRatingDifference) -> f64 {
     1.0 / (1.0 + 3.0 * deviation.powi(2) / PI.powi(2)).sqrt()
 }
 
-fn expectation_value(InternalRatingDifference(our_advantage): InternalRatingDifference, their_deviation: InternalRatingDifference) -> Score {
+fn expectation_value(
+    InternalRatingDifference(our_advantage): InternalRatingDifference,
+    their_deviation: InternalRatingDifference,
+) -> Score {
     Score(1.0 / (1.0 + f64::exp(-g(their_deviation) * our_advantage)))
+}
+
+fn new_deviation(
+    InternalRatingDifference(deviation): InternalRatingDifference,
+    Volatility(volatility): Volatility,
+    elapsed_periods: f64,
+) -> InternalRatingDifference {
+    InternalRatingDifference(f64::sqrt(
+        deviation.powi(2) + elapsed_periods * volatility.powi(2),
+    ))
 }
