@@ -3,40 +3,12 @@ use std::f64::consts::PI;
 mod instant;
 mod score;
 mod rating_system;
+mod rating;
 
 pub use instant::Instant;
 pub use score::Score;
+pub use rating::Rating;
 pub use rating_system::{RatingSystemBuilder, RatingSystem};
-
-#[derive(Debug, Clone)]
-pub struct Rating {
-    pub rating: f64,
-    pub deviation: f64,
-    pub volatility: f64,
-    pub at: Instant,
-}
-
-impl Rating {
-    pub fn at(&self, rating_system: &RatingSystem, at: Instant) -> Rating {
-        Rating::from(InternalRating::from(self).at(rating_system, at))
-    }
-
-    pub fn deviation(&self, rating_system: &RatingSystem, at: Instant) -> f64 {
-        self.at(rating_system, at).last_deviation
-    }
-}
-
-
-impl Default for RatingSystem {
-    fn default() -> RatingSystem {
-        RatingSystemBuilder::default().build()
-    }
-
-impl RatingSystem {
-    pub fn builder() -> RatingSystemBuilder {
-        RatingSystemBuilder::default()
-    }
-}
 
 struct InternalRatingSystem {
     first_advantage: f64,
@@ -44,15 +16,6 @@ struct InternalRatingSystem {
 
 
 impl RatingSystem {
-    pub fn new_rating(&self, at: Instant) -> Rating {
-        Rating {
-            rating: self.default_rating,
-            deviation: self.max_deviation,
-            volatility: self.default_volatility,
-            at,
-        }
-    }
-
     pub fn expected_score(&self, first: &Rating, second: &Rating, at: Instant) -> Score {
         Score(expectation_value(
             &InternalRating::from(first).at(self, at),
@@ -72,26 +35,6 @@ impl RatingSystem {
         let second = InternalRating::from(second).at(self, at);
         (Rating::from(first.update(self, score, &second, self.first_advantage / INTERNAL_RATING_SCALE)),
          Rating::from(second.update(self, score.opposite(), &first, -self.first_advantage / INTERNAL_RATING_SCALE)))
-    }
-
-    pub fn tau(&self) -> f64 {
-        self.tau
-    }
-
-    pub fn min_deviation(&self) -> f64 {
-        self.min_deviation
-    }
-
-    fn min_internal_deviation(&self) -> f64 {
-        self.min_deviation / INTERNAL_RATING_SCALE
-    }
-
-    pub fn max_deviation(&self) -> f64 {
-        self.max_deviation
-    }
-
-    fn max_internal_deviation(&self) -> f64 {
-        self.max_deviation / INTERNAL_RATING_SCALE
     }
 }
 

@@ -1,19 +1,19 @@
 use std::default;
 
-use crate::Rating;
+use crate::{rating::{RatingDifference, RatingScalar, Volatility, Rating}};
 
 #[derive(Debug, Clone)]
 pub struct RatingSystemBuilder {
-    min_rating: f64,
-    max_rating: f64,
+    min_rating: RatingScalar,
+    max_rating: RatingScalar,
 
-    default_rating: f64,
-    default_volatility: f64,
+    default_rating: RatingScalar,
+    default_volatility: Volatility,
 
-    min_deviation: f64,
-    max_deviation: f64,
+    min_deviation: RatingDifference,
+    max_deviation: RatingDifference,
 
-    first_advantage: f64,
+    first_advantage: RatingDifference,
 
     tau: f64,
 }
@@ -27,57 +27,57 @@ impl Default for RatingSystemBuilder {
 impl RatingSystemBuilder {
     pub fn new() -> RatingSystemBuilder {
         RatingSystemBuilder {
-            min_rating: 400.0,
-            max_rating: 4000.0,
+            min_rating: RatingScalar(400.0),
+            max_rating: RatingScalar(4000.0),
 
-            default_rating: 1500.0,
-            default_volatility: 0.09,
+            default_rating: RatingScalar(1500.0),
+            default_volatility: Volatility(0.09),
 
-            min_deviation: 0.0,
-            max_deviation: 500.0,
+            min_deviation: RatingDifference(45.0),
+            max_deviation: RatingDifference(500.0),
 
-            first_advantage: 0.0,
+            first_advantage: RatingDifference(0.0),
 
             tau: 0.75,
         }
     }
 
-    pub fn min_rating(&mut self, min_rating: f64) -> &mut Self {
+    pub fn min_rating(&mut self, min_rating: RatingScalar) -> &mut Self {
         assert!(!min_rating.is_nan());
         self.min_rating = min_rating;
         self
     }
 
-    pub fn max_rating(&mut self, max_rating: f64) -> &mut Self {
+    pub fn max_rating(&mut self, max_rating: RatingScalar) -> &mut Self {
         assert!(!max_rating.is_nan());
         self.max_rating = max_rating;
         self
     }
 
-    pub fn default_rating(&mut self, default_rating: f64) -> &mut Self {
+    pub fn default_rating(&mut self, default_rating: RatingScalar) -> &mut Self {
         self.default_rating = default_rating;
         self
     }
 
-    pub fn default_volatility(&mut self, default_volatility: f64) -> &mut Self {
+    pub fn default_volatility(&mut self, default_volatility: Volatility) -> &mut Self {
         assert!(default_volatility >= 0.0);
         self.default_volatility = default_volatility;
         self
     }
 
-    pub fn min_deviation(&mut self, min_deviation: f64) -> &mut Self {
+    pub fn min_deviation(&mut self, min_deviation: RatingDifference) -> &mut Self {
         assert!(min_deviation >= 0.0);
         self.min_deviation = min_deviation;
         self
     }
 
-    pub fn max_deviation(&mut self, max_deviation: f64) -> &mut Self {
+    pub fn max_deviation(&mut self, max_deviation: RatingDifference) -> &mut Self {
         assert!(!max_deviation.is_nan());
         self.max_deviation = max_deviation;
         self
     }
 
-    pub fn first_advantage(&mut self, first_advantage: f64) -> &mut Self {
+    pub fn first_advantage(&mut self, first_advantage: RatingDifference) -> &mut Self {
         self.first_advantage = first_advantage;
         self
     }
@@ -111,16 +111,16 @@ impl RatingSystemBuilder {
 
 #[derive(Debug, Clone)]
 pub struct RatingSystem {
-    min_rating: f64,
-    max_rating: f64,
+    min_rating: RatingScalar,
+    max_rating: RatingScalar,
 
-    default_rating: f64,
-    default_volatility: f64,
+    default_rating: RatingScalar,
+    default_volatility: Volatility,
 
-    min_deviation: f64,
-    max_deviation: f64,
+    min_deviation: RatingDifference,
+    max_deviation: RatingDifference,
 
-    first_advantage: f64,
+    first_advantage: RatingDifference,
 
     tau: f64,
 }
@@ -140,31 +140,31 @@ impl RatingSystem {
         RatingSystem::builder().build()
     }
 
-    pub fn min_rating(&self) -> f64 {
+    pub fn min_rating(&self) -> RatingScalar {
         self.min_rating
     }
 
-    pub fn max_rating(&self) -> f64 {
+    pub fn max_rating(&self) -> RatingScalar {
         self.max_rating
     }
 
-    pub fn default_rating(&self) -> f64 {
+    pub fn default_rating(&self) -> RatingScalar {
         self.default_rating
     }
 
-    pub fn default_volatility(&self) -> f64 {
+    pub fn default_volatility(&self) -> Volatility {
         self.default_volatility
     }
 
-    pub fn min_deviation(&self) -> f64 {
+    pub fn min_deviation(&self) -> RatingDifference {
         self.min_deviation
     }
 
-    pub fn max_deviation(&self) -> f64 {
+    pub fn max_deviation(&self) -> RatingDifference {
         self.max_deviation
     }
 
-    pub fn first_advantage(&self) -> f64 {
+    pub fn first_advantage(&self) -> RatingDifference {
         self.first_advantage
     }
 

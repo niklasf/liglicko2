@@ -1,5 +1,3 @@
-use std::ops;
-
 use crate::Instant;
 
 /// Number representing playing strength, such that the difference between two
@@ -23,9 +21,11 @@ impl From<RatingDifference> for f64 {
     }
 }
 
+/// Number representing the degree of expected fluctuation in a rating.
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
 pub struct Volatility(pub f64);
 
+/// A rating at a specific point in time.
 #[derive(Debug, Clone)]
 pub struct Rating {
     pub rating: RatingScalar,
