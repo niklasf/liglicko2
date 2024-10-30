@@ -1,3 +1,5 @@
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
+
 use crate::Instant;
 
 /// Number representing playing strength, such that the difference between two
@@ -11,6 +13,42 @@ impl From<RatingScalar> for f64 {
     }
 }
 
+impl Sub<RatingScalar> for RatingScalar {
+    type Output = RatingDifference;
+
+    fn sub(self, rhs: RatingScalar) -> RatingDifference {
+        RatingDifference(self.0 - rhs.0)
+    }
+}
+
+impl Add<RatingDifference> for RatingScalar {
+    type Output = RatingScalar;
+
+    fn add(self, RatingDifference(difference): RatingDifference) -> RatingScalar {
+        RatingScalar(self.0 + difference)
+    }
+}
+
+impl AddAssign<RatingDifference> for RatingScalar {
+    fn add_assign(&mut self, RatingDifference(difference): RatingDifference) {
+        self.0 += difference;
+    }
+}
+
+impl Sub<RatingDifference> for RatingScalar {
+    type Output = RatingScalar;
+
+    fn sub(self, RatingDifference(difference): RatingDifference) -> RatingScalar {
+        RatingScalar(self.0 - difference)
+    }
+}
+
+impl SubAssign<RatingDifference> for RatingScalar {
+    fn sub_assign(&mut self, RatingDifference(difference): RatingDifference) {
+        self.0 -= difference;
+    }
+}
+
 /// A difference between two ratings.
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Default)]
 pub struct RatingDifference(pub f64);
@@ -18,6 +56,76 @@ pub struct RatingDifference(pub f64);
 impl From<RatingDifference> for f64 {
     fn from(RatingDifference(difference): RatingDifference) -> f64 {
         difference
+    }
+}
+
+impl RatingDifference {
+    pub fn abs(self) -> RatingDifference {
+        RatingDifference(self.0.abs())
+    }
+}
+
+impl Add<RatingDifference> for RatingDifference {
+    type Output = RatingDifference;
+
+    fn add(self, RatingDifference(difference): RatingDifference) -> RatingDifference {
+        RatingDifference(self.0 + difference)
+    }
+}
+
+impl AddAssign<RatingDifference> for RatingDifference {
+    fn add_assign(&mut self, RatingDifference(difference): RatingDifference) {
+        self.0 += difference;
+    }
+}
+
+impl Sub<RatingDifference> for RatingDifference {
+    type Output = RatingDifference;
+
+    fn sub(self, RatingDifference(difference): RatingDifference) -> RatingDifference {
+        RatingDifference(self.0 - difference)
+    }
+}
+
+impl SubAssign<RatingDifference> for RatingDifference {
+    fn sub_assign(&mut self, RatingDifference(difference): RatingDifference) {
+        self.0 -= difference;
+    }
+}
+
+impl Mul<f64> for RatingDifference {
+    type Output = RatingDifference;
+
+    fn mul(self, scalar: f64) -> RatingDifference {
+        RatingDifference(self.0 * scalar)
+    }
+}
+
+impl Mul<RatingDifference> for f64 {
+    type Output = RatingDifference;
+
+    fn mul(self, RatingDifference(difference): RatingDifference) -> RatingDifference {
+        RatingDifference(self * difference)
+    }
+}
+
+impl MulAssign<f64> for RatingDifference {
+    fn mul_assign(&mut self, scalar: f64) {
+        self.0 *= scalar;
+    }
+}
+
+impl Div<f64> for RatingDifference {
+    type Output = RatingDifference;
+
+    fn div(self, scalar: f64) -> RatingDifference {
+        RatingDifference(self.0 / scalar)
+    }
+}
+
+impl DivAssign<f64> for RatingDifference {
+    fn div_assign(&mut self, scalar: f64) {
+        self.0 /= scalar;
     }
 }
 

@@ -1,6 +1,8 @@
 use std::default;
 
-use crate::{rating::{RatingDifference, RatingScalar, Volatility, Rating}};
+use crate::{internal_rating::InternalRatingDifference, rating::{Rating, RatingDifference, RatingScalar, Volatility}};
+use crate::Score;
+use std::f64::consts::PI;
 
 #[derive(Debug, Clone)]
 pub struct RatingSystemBuilder {
@@ -43,13 +45,13 @@ impl RatingSystemBuilder {
     }
 
     pub fn min_rating(&mut self, min_rating: RatingScalar) -> &mut Self {
-        assert!(!min_rating.is_nan());
+        assert!(!f64::from(min_rating).is_nan());
         self.min_rating = min_rating;
         self
     }
 
     pub fn max_rating(&mut self, max_rating: RatingScalar) -> &mut Self {
-        assert!(!max_rating.is_nan());
+        assert!(!f64::from(max_rating).is_nan());
         self.max_rating = max_rating;
         self
     }
@@ -60,19 +62,19 @@ impl RatingSystemBuilder {
     }
 
     pub fn default_volatility(&mut self, default_volatility: Volatility) -> &mut Self {
-        assert!(default_volatility >= 0.0);
+        assert!(default_volatility >= Volatility(0.0));
         self.default_volatility = default_volatility;
         self
     }
 
     pub fn min_deviation(&mut self, min_deviation: RatingDifference) -> &mut Self {
-        assert!(min_deviation >= 0.0);
+        assert!(min_deviation >= RatingDifference(0.0));
         self.min_deviation = min_deviation;
         self
     }
 
     pub fn max_deviation(&mut self, max_deviation: RatingDifference) -> &mut Self {
-        assert!(!max_deviation.is_nan());
+        assert!(!f64::from(max_deviation).is_nan());
         self.max_deviation = max_deviation;
         self
     }
@@ -171,4 +173,12 @@ impl RatingSystem {
     pub fn tau(&self) -> f64 {
         self.tau
     }
+}
+
+fn g(InternalRatingDifference(deviation): InternalRatingDifference) -> f64 {
+    1.0 / (1.0 + 3.0 * deviation.powi(2) / PI.powi(2)).sqrt()
+}
+
+fn expectation_value(InternalRatingDifference(our_advantage): InternalRatingDifference, their_deviation: InternalRatingDifference) -> Score {
+    Score(1.0 / (1.0 + f64::exp(-g(their_deviation) * our_advantage)))
 }
