@@ -1,5 +1,3 @@
-use std::f64::consts::PI;
-
 mod instant;
 mod score;
 mod rating_system;

@@ -1,5 +1,3 @@
-use std::default;
-
 use crate::Instant;
 use crate::Score;
 use crate::{
@@ -178,6 +176,15 @@ impl RatingSystem {
         self.tau
     }
 
+    pub fn initial_rating(&self) -> Rating {
+        Rating {
+            rating: self.default_rating.clamp(self.min_rating, self.max_rating),
+            deviation: self.max_deviation,
+            volatility: self.default_volatility,
+            at: Instant::default(),
+        }
+    }
+
     pub fn preview_deviation(&self, rating: &Rating, now: Instant) -> RatingDifference {
         RatingDifference::from(new_deviation(
             rating.deviation.into(),
@@ -185,6 +192,13 @@ impl RatingSystem {
             f64::max(now.elapsed_periods_since(rating.at), 0.0),
         ))
         .clamp(self.min_deviation, self.max_deviation)
+    }
+
+    pub fn expected_score(&self, first: &Rating, second: &Rating, now: Instant) -> Score {
+        expectation_value(
+            (first.rating + self.first_advantage - second.rating).into(),
+            self.preview_deviation(second, now).into()
+        )
     }
 }
 
