@@ -1,31 +1,18 @@
-/// An instant in time. A difference of 1.0 represents a *rating period* in
-/// Glicko2 terminology.
-#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Default)]
-pub struct Instant(pub f64);
+use std::f64::consts::PI;
 
-impl From<Instant> for f64 {
-    fn from(Instant(instant): Instant) -> f64 {
-        instant
-    }
-}
+mod instant;
+mod score;
+mod public;
 
-/// A score or expectation value in the range `0.0..=1.0`, where `0.0` is a
-/// loss, `1.0` is a win.
-#[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Default)]
-pub struct Score(pub f64);
-
-impl From<Score> for f64 {
-    fn from(Score(score): Score) -> f64 {
-        score
-    }
-}
+pub use instant::Instant;
+pub use score::Score;
 
 #[derive(Debug, Clone)]
 pub struct Rating {
     pub rating: f64,
-    pub last_deviation: f64,
+    pub deviation: f64,
     pub volatility: f64,
-    pub updated_at: Option<Instant>,
+    pub at: Instant,
 }
 
 impl Rating {
@@ -74,17 +61,21 @@ impl Default for RatingSystem {
 }
 
 impl RatingSystem {
-    pub fn default_rating(&self) -> Rating {
+    pub fn new_rating(&self, at: Instant) -> Rating {
         Rating {
             rating: self.default_rating,
-            last_deviation: self.max_deviation,
+            deviation: self.max_deviation,
             volatility: self.default_volatility,
-            updated_at: None,
+            at,
         }
     }
 
-    pub fn expected_score(&self, first: &Rating, second: &Rating) -> Score {
-        todo!()
+    pub fn expected_score(&self, first: &Rating, second: &Rating, at: Instant) -> Score {
+        Score(expectation_value(
+            &InternalRating::from(first).at(self, at),
+            &InternalRating::from(second).at(self, at),
+            self.first_advantage / INTERNAL_RATING_SCALE,
+        ))
     }
 
     pub fn update_ratings(
@@ -92,8 +83,12 @@ impl RatingSystem {
         first: &Rating,
         second: &Rating,
         score: Score,
+        at: Instant,
     ) -> (Rating, Rating) {
-        todo!()
+        let first = InternalRating::from(first).at(self, at);
+        let second = InternalRating::from(second).at(self, at);
+        (Rating::from(first.update(self, score, &second, self.first_advantage / INTERNAL_RATING_SCALE)),
+         Rating::from(second.update(self, score.opposite(), &first, -self.first_advantage / INTERNAL_RATING_SCALE)))
     }
 
     pub fn tau(&self) -> f64 {
@@ -104,8 +99,16 @@ impl RatingSystem {
         self.min_deviation
     }
 
+    fn min_internal_deviation(&self) -> f64 {
+        self.min_deviation / INTERNAL_RATING_SCALE
+    }
+
     pub fn max_deviation(&self) -> f64 {
         self.max_deviation
+    }
+
+    fn max_internal_deviation(&self) -> f64 {
+        self.max_deviation / INTERNAL_RATING_SCALE
     }
 }
 
@@ -162,12 +165,30 @@ impl InternalRating {
 
     fn deviation(&self, rating_system: &RatingSystem, Instant(at): Instant) -> f64 {
         let elapsed_periods = match self.updated_at {
-            Some(Instant(updated_at)) => at - updated_at,
-            None => 0.0,
+            Some(Instant(updated_at)) if at > updated_at => at - updated_at,
+            _ => 0.0,
         };
 
         (self.last_deviation.powi(2) + elapsed_periods * rating_system.tau.powi(2))
             .sqrt()
-            .clamp(rating_system.min_deviation, rating_system.max_deviation)
+            .clamp(rating_system.min_internal_deviation(), rating_system.max_internal_deviation())
     }
+
+    fn update(&self, rating_system: &RatingSystem, score: Score, them: &InternalRating, our_advantage: f64) -> InternalRating {
+        // Step 3
+        let g_them = g(them.last_deviation);
+        let e = expectation_value(self, them, our_advantage);
+        let v = 1.0 / (g_them.powi(2) * e * (1.0 - e));
+
+        // Step 4
+        let delta = v * g_them * (f64::from(score) - e);
+    }
+}
+
+fn g(deviation: f64) -> f64 {
+    1.0 / (1.0 + 3.0 * deviation.powi(2) / PI.powi(2)).sqrt()
+}
+
+fn expectation_value(first: &InternalRating, second: &InternalRating, internal_first_advantage: f64) -> f64 {
+    1.0 / (1.0 + (-g(second.last_deviation) * (first.rating + internal_first_advantage - second.rating)).exp())
 }
