@@ -1,6 +1,6 @@
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign, Neg};
 
-use crate::Instant;
+use crate::{internal_rating::InternalRatingDifference, Instant};
 
 /// Number representing playing strength, such that the difference between two
 /// ratings can be used to predict an expected score. Higher is better.
@@ -73,6 +73,10 @@ impl RatingDifference {
     pub fn abs(self) -> RatingDifference {
         RatingDifference(self.0.abs())
     }
+
+    pub(crate) fn internal(self) -> InternalRatingDifference {
+        InternalRatingDifference::from(self)
+    }
 }
 
 impl Add<RatingDifference> for RatingDifference {
@@ -136,6 +140,14 @@ impl Div<f64> for RatingDifference {
 impl DivAssign<f64> for RatingDifference {
     fn div_assign(&mut self, scalar: f64) {
         self.0 /= scalar;
+    }
+}
+
+impl Neg for RatingDifference {
+    type Output = RatingDifference;
+
+    fn neg(self) -> RatingDifference {
+        RatingDifference(-self.0)
     }
 }
 
