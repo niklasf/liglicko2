@@ -2,10 +2,11 @@ use std::f64::consts::PI;
 
 mod instant;
 mod score;
-mod public;
+mod rating_system;
 
 pub use instant::Instant;
 pub use score::Score;
+pub use rating_system::{RatingSystemBuilder, RatingSystem};
 
 #[derive(Debug, Clone)]
 pub struct Rating {
@@ -25,40 +26,22 @@ impl Rating {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct RatingSystem {
-    min_rating: f64,
-    max_rating: f64,
-
-    default_rating: f64,
-    default_volatility: f64,
-
-    min_deviation: f64,
-    max_deviation: f64,
-
-    first_advantage: f64,
-
-    tau: f64,
-}
 
 impl Default for RatingSystem {
     fn default() -> RatingSystem {
-        RatingSystem {
-            min_rating: 400.0,
-            max_rating: 4000.0,
+        RatingSystemBuilder::default().build()
+    }
 
-            default_rating: 1500.0,
-            default_volatility: 0.09,
-
-            min_deviation: 0.0,
-            max_deviation: 500.0,
-
-            first_advantage: 0.0,
-
-            tau: 0.75,
-        }
+impl RatingSystem {
+    pub fn builder() -> RatingSystemBuilder {
+        RatingSystemBuilder::default()
     }
 }
+
+struct InternalRatingSystem {
+    first_advantage: f64,
+}
+
 
 impl RatingSystem {
     pub fn new_rating(&self, at: Instant) -> Rating {
