@@ -251,6 +251,8 @@ impl RatingSystem {
         now: Instant,
         advantage: RatingDifference,
     ) -> Rating {
+        let phi = us.deviation.internal();
+
         // Step 3
         let their_g = g(self.preview_deviation(them, now).internal()); // Novel
         let expected = expectation_value((us.rating + advantage - them.rating).internal(), their_g);
@@ -259,8 +261,54 @@ impl RatingSystem {
         // Step 4
         let delta = v * their_g * f64::from(score - expected);
 
-        // Step 5
-        let sigma_prime = us.volatility; // TODO
+        // Step 5.1
+        let a = f64::ln(f64::from(us.volatility).powi(2));
+        let f = |x: f64| {
+            f64::exp(x) * (delta.powi(2) - f64::from(phi).powi(2) - v - f64::exp(x))
+                / (2.0 * (f64::from(phi).powi(2) + v + f64::exp(x)).powi(2))
+                - (x - a) / self.tau.powi(2)
+        };
+
+        // Step 5.2
+        let mut big_a = a;
+        let mut big_b = if delta.powi(2) > f64::from(phi).powi(2) + v {
+            f64::ln(delta.powi(2) - f64::from(phi).powi(2) - v)
+        } else {
+            let mut k = 1.0;
+            while f(a - k * self.tau) < 0.0 {
+                k += 1.0;
+            }
+            a - k * self.tau
+        };
+
+        // Step 5.3
+        let mut f_a = f(big_a);
+        let mut f_b = f(big_b);
+
+        // Step 5.4
+        let mut iterations = 0;
+        while f64::abs(big_b - big_a) > CONVERGENCE_TOLERANCE {
+            iterations += 1;
+            if iterations > MAX_ITERATIONS {
+                panic!("Failed to converge");
+            }
+
+            let big_c = big_a + (big_a - big_b) * f_a / (f_b - f_a);
+            let f_c = f(big_c);
+
+            if f_c * f_b <= 0.0 {
+                big_a = big_b;
+                f_a = f_b;
+            } else {
+                f_a /= 2.0;
+            }
+
+            big_b = big_c;
+            f_b = f_c;
+        }
+
+        // Step 5.5
+        let sigma_prime = Volatility(f64::exp(big_a / 2.0));
 
         // Step 6
         let phi_star = new_deviation(
@@ -271,10 +319,8 @@ impl RatingSystem {
 
         // Step 7
         let phi_prime =
-            InternalRatingDifference(1.0 / f64::sqrt(1.0 / f64::from(phi_star).powi(2) + 1.0 / v)).clamp(
-                self.min_deviation.internal(),
-                self.max_deviation.internal(),
-            );
+            InternalRatingDifference(1.0 / f64::sqrt(1.0 / f64::from(phi_star).powi(2) + 1.0 / v))
+                .clamp(self.min_deviation.internal(), self.max_deviation.internal());
         let mu_prime_diff = InternalRatingDifference(
             f64::from(phi_prime).powi(2) * their_g * f64::from(score - expected),
         );
@@ -309,3 +355,7 @@ fn new_deviation(
         deviation.powi(2) + f64::max(elapsed_periods, 0.0) * volatility.powi(2),
     ))
 }
+
+const CONVERGENCE_TOLERANCE: f64 = 0.000001;
+
+const MAX_ITERATIONS: u32 = 10000;
