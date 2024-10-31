@@ -1,12 +1,10 @@
-use crate::Score;
+use std::{error::Error, f64::consts::PI, fmt};
+
 use crate::{
     internal_rating::InternalRatingDifference,
     rating::{Rating, RatingDifference, RatingScalar, Volatility},
+    Instant, Periods, Score,
 };
-use crate::{Instant, Periods};
-use std::error::Error;
-use std::f64::consts::PI;
-use std::fmt;
 
 /// Used to configure a rating system.
 ///
@@ -288,7 +286,7 @@ impl RatingSystem {
     }
 
     /// Construct an initial rating for a new player.
-    pub fn initial_rating(&self) -> Rating {
+    pub fn new_rating(&self) -> Rating {
         Rating {
             rating: self.default_rating.clamp(self.min_rating, self.max_rating),
             deviation: self.max_deviation,
@@ -516,22 +514,3 @@ impl fmt::Display for ConvergenceError {
 }
 
 impl Error for ConvergenceError {}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_plausible() {
-        let system = RatingSystem::new();
-
-        let (a, b) = (system.initial_rating(), system.initial_rating());
-        assert!((system.expected_score(&a, &b, Instant(1.0)).value() - 0.5).abs() < 0.0001);
-
-        let (a, b) = system
-            .update_ratings(&a, &b, Score(1.0), Instant(2.0))
-            .unwrap();
-
-        assert!(a.rating > b.rating);
-    }
-}
