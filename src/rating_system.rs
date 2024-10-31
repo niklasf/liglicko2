@@ -21,6 +21,8 @@ pub struct RatingSystemBuilder {
 
     first_advantage: RatingDifference,
 
+    preview_opponent_deviation: bool,
+
     tau: f64,
 }
 
@@ -45,6 +47,8 @@ impl RatingSystemBuilder {
             max_deviation: RatingDifference(500.0),
 
             first_advantage: RatingDifference(0.0),
+
+            preview_opponent_deviation: false,
 
             tau: 0.75,
         }
@@ -108,6 +112,11 @@ impl RatingSystemBuilder {
         self
     }
 
+    pub fn preview_opponent_deviation(&mut self, preview_opponent_deviation: bool) -> &mut Self {
+        self.preview_opponent_deviation = preview_opponent_deviation;
+        self
+    }
+
     pub fn build(&self) -> RatingSystem {
         assert!(self.min_rating <= self.max_rating);
         assert!(self.min_deviation <= self.max_deviation);
@@ -126,6 +135,8 @@ impl RatingSystemBuilder {
             max_deviation: self.max_deviation,
 
             first_advantage: self.first_advantage,
+
+            preview_opponent_deviation: self.preview_opponent_deviation,
 
             tau: self.tau,
         }
@@ -146,6 +157,8 @@ pub struct RatingSystem {
     max_deviation: RatingDifference,
 
     first_advantage: RatingDifference,
+
+    preview_opponent_deviation: bool,
 
     tau: f64,
 }
@@ -201,6 +214,10 @@ impl RatingSystem {
         self.first_advantage
     }
 
+    pub fn preview_opponent_deviation(&self) -> bool {
+        self.preview_opponent_deviation
+    }
+
     pub fn tau(&self) -> f64 {
         self.tau
     }
@@ -218,7 +235,7 @@ impl RatingSystem {
 
     pub fn preview_deviation(&self, rating: &Rating, now: Instant) -> RatingDifference {
         RatingDifference::from(new_deviation(
-            rating.deviation.internal(),
+            rating.deviation.to_internal(),
             rating.volatility,
             now.elapsed_periods_since(rating.at),
         ))
@@ -227,8 +244,14 @@ impl RatingSystem {
 
     pub fn expected_score(&self, first: &Rating, second: &Rating, now: Instant) -> Score {
         expectation_value(
-            (first.rating + self.first_advantage - second.rating).internal(),
-            g(self.preview_deviation(second, now).internal()),
+            (first.rating + self.first_advantage - second.rating).to_internal(),
+            g(RatingDifference::to_internal(
+                if self.preview_opponent_deviation {
+                    self.preview_deviation(second, now)
+                } else {
+                    second.deviation
+                },
+            )),
         )
     }
 
@@ -253,11 +276,18 @@ impl RatingSystem {
         now: Instant,
         advantage: RatingDifference,
     ) -> Rating {
-        let phi = us.deviation.internal();
+        let phi = us.deviation.to_internal();
 
         // Step 3
-        let their_g = g(self.preview_deviation(them, now).internal()); // Novel
-        let expected = expectation_value((us.rating + advantage - them.rating).internal(), their_g);
+        let their_g = g(RatingDifference::to_internal(
+            if self.preview_opponent_deviation {
+                self.preview_deviation(them, now)
+            } else {
+                them.deviation
+            },
+        ));
+        let expected =
+            expectation_value((us.rating + advantage - them.rating).to_internal(), their_g);
         let v = 1.0 / (their_g.powi(2) * expected.value() * expected.opposite().value());
 
         // Step 4
@@ -315,14 +345,17 @@ impl RatingSystem {
 
         // Step 6
         let phi_star = new_deviation(
-            us.deviation.internal(),
+            us.deviation.to_internal(),
             sigma_prime,
             now.elapsed_periods_since(us.at),
         );
 
         // Step 7
         let phi_prime = InternalRatingDifference(1.0 / f64::sqrt(1.0 / phi_star.sq() + 1.0 / v))
-            .clamp(self.min_deviation.internal(), self.max_deviation.internal());
+            .clamp(
+                self.min_deviation.to_internal(),
+                self.max_deviation.to_internal(),
+            );
         let mu_prime_diff =
             InternalRatingDifference(phi_prime.sq() * their_g * Score::value(score - expected));
 
@@ -336,8 +369,8 @@ impl RatingSystem {
     }
 }
 
-fn g(InternalRatingDifference(deviation): InternalRatingDifference) -> f64 {
-    1.0 / (1.0 + 3.0 * deviation.powi(2) / PI.powi(2)).sqrt()
+fn g(deviation: InternalRatingDifference) -> f64 {
+    1.0 / (1.0 + 3.0 * deviation.sq() / PI.powi(2)).sqrt()
 }
 
 fn expectation_value(
@@ -348,12 +381,12 @@ fn expectation_value(
 }
 
 fn new_deviation(
-    InternalRatingDifference(deviation): InternalRatingDifference,
-    Volatility(volatility): Volatility,
+    deviation: InternalRatingDifference,
+    volatility: Volatility,
     elapsed_periods: f64,
 ) -> InternalRatingDifference {
     InternalRatingDifference(f64::sqrt(
-        deviation.powi(2) + f64::max(elapsed_periods, 0.0) * volatility.powi(2),
+        deviation.sq() + f64::max(elapsed_periods, 0.0) * volatility.sq(),
     ))
 }
 

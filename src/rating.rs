@@ -82,7 +82,7 @@ impl RatingDifference {
         RatingDifference(self.0.abs())
     }
 
-    pub(crate) fn internal(self) -> InternalRatingDifference {
+    pub(crate) fn to_internal(self) -> InternalRatingDifference {
         InternalRatingDifference::from(self)
     }
 }
