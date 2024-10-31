@@ -15,6 +15,14 @@ impl Score {
     pub fn opposite(self) -> Score {
         Score(1.0 - self.0)
     }
+
+    pub fn value(self) -> f64 {
+        self.0
+    }
+
+    pub fn clamp(self, Score(min): Score, Score(max): Score) -> Score {
+        Score(f64::from(self).clamp(min, max))
+    }
 }
 
 impl Score {

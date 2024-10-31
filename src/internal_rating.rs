@@ -27,4 +27,8 @@ impl InternalRatingDifference {
     pub fn clamp(self, InternalRatingDifference(min): InternalRatingDifference, InternalRatingDifference(max): InternalRatingDifference) -> InternalRatingDifference {
         InternalRatingDifference(f64::from(self).clamp(min, max))
     }
+
+    pub fn sq(self) -> f64 {
+        self.0 * self.0
+    }
 }

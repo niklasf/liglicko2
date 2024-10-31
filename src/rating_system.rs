@@ -256,23 +256,23 @@ impl RatingSystem {
         // Step 3
         let their_g = g(self.preview_deviation(them, now).internal()); // Novel
         let expected = expectation_value((us.rating + advantage - them.rating).internal(), their_g);
-        let v = 1.0 / (their_g.powi(2) * f64::from(expected) * f64::from(expected.opposite()));
+        let v = 1.0 / (their_g.powi(2) * expected.value() * expected.opposite().value());
 
         // Step 4
-        let delta = v * their_g * f64::from(score - expected);
+        let delta = v * their_g * Score::value(score - expected);
 
         // Step 5.1
-        let a = f64::ln(f64::from(us.volatility).powi(2));
+        let a = f64::ln(us.volatility.sq());
         let f = |x: f64| {
-            f64::exp(x) * (delta.powi(2) - f64::from(phi).powi(2) - v - f64::exp(x))
-                / (2.0 * (f64::from(phi).powi(2) + v + f64::exp(x)).powi(2))
+            f64::exp(x) * (delta.powi(2) - phi.sq() - v - f64::exp(x))
+                / (2.0 * (phi.sq() + v + f64::exp(x)).powi(2))
                 - (x - a) / self.tau.powi(2)
         };
 
         // Step 5.2
         let mut big_a = a;
-        let mut big_b = if delta.powi(2) > f64::from(phi).powi(2) + v {
-            f64::ln(delta.powi(2) - f64::from(phi).powi(2) - v)
+        let mut big_b = if delta.powi(2) > phi.sq() + v {
+            f64::ln(delta.powi(2) - phi.sq() - v)
         } else {
             let mut k = 1.0;
             while f(a - k * self.tau) < 0.0 {
@@ -319,10 +319,10 @@ impl RatingSystem {
 
         // Step 7
         let phi_prime =
-            InternalRatingDifference(1.0 / f64::sqrt(1.0 / f64::from(phi_star).powi(2) + 1.0 / v))
+            InternalRatingDifference(1.0 / f64::sqrt(1.0 / phi_star.sq() + 1.0 / v))
                 .clamp(self.min_deviation.internal(), self.max_deviation.internal());
         let mu_prime_diff = InternalRatingDifference(
-            f64::from(phi_prime).powi(2) * their_g * f64::from(score - expected),
+            phi_prime.sq() * their_g * (score - expected).value(),
         );
 
         // Step 8

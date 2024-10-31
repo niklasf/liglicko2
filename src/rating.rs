@@ -159,6 +159,10 @@ impl Volatility {
     pub fn clamp(self, Volatility(min): Volatility, Volatility(max): Volatility) -> Volatility {
         Volatility(f64::from(self).clamp(min, max))
     }
+
+    pub(crate) fn sq(self) -> f64 {
+        self.0 * self.0
+    }
 }
 
 impl From<Volatility> for f64 {

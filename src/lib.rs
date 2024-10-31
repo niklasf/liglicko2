@@ -1,13 +1,13 @@
 mod instant;
-mod score;
-mod rating_system;
-mod rating;
 mod internal_rating;
+mod rating;
+mod rating_system;
+mod score;
 
 pub use instant::Instant;
+pub use rating::{Rating, RatingDifference, RatingScalar, Volatility};
+pub use rating_system::{RatingSystem, RatingSystemBuilder};
 pub use score::Score;
-pub use rating::{RatingScalar, RatingDifference, Rating, Volatility};
-pub use rating_system::{RatingSystemBuilder, RatingSystem};
 
 /// Log likelihood deviance metric that can be used to evaluate the quality of
 /// rating system predictions.
