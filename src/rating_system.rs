@@ -322,7 +322,7 @@ impl RatingSystem {
         while f64::abs(big_b - big_a) > CONVERGENCE_TOLERANCE {
             iterations += 1;
             if iterations > MAX_ITERATIONS {
-                panic!("Failed to converge");
+                panic!("failed to converge for {us:?} vs {them:?} with {score:?} and advantage {advantage:?} at {now:?}");
             }
 
             let big_c = big_a + (big_a - big_b) * f_a / (f_b - f_a);

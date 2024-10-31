@@ -5,7 +5,7 @@ use arbitrary::Unstructured;
 use libfuzzer_sys::fuzz_target;
 use liglicko2::{Instant, Rating, RatingDifference, RatingScalar, RatingSystem, Score, Volatility};
 
-#[derive(Arbitrary)]
+#[derive(Arbitrary, Debug)]
 struct ArbitraryRating {
     rating: f64,
     deviation: f64,
@@ -14,7 +14,7 @@ struct ArbitraryRating {
 }
 
 impl ArbitraryRating {
-    fn into_clamped(self) -> Option<Rating> {
+    fn to_clamped(&self) -> Option<Rating> {
         if self.rating.is_nan()
             || self.deviation.is_nan()
             || self.volatility.is_nan()
@@ -32,7 +32,7 @@ impl ArbitraryRating {
     }
 }
 
-#[derive(Arbitrary)]
+#[derive(Arbitrary, Debug)]
 struct Encounter {
     first: ArbitraryRating,
     second: ArbitraryRating,
@@ -40,11 +40,23 @@ struct Encounter {
     at: f64,
 }
 
-fn assert_rating(glicko: Rating) {
-    assert!(!f64::from(glicko.rating).is_nan());
-    assert!(!f64::from(glicko.deviation).is_nan());
-    assert!(!f64::from(glicko.volatility).is_nan());
-    assert!(!f64::from(glicko.at).is_nan());
+fn assert_rating(glicko: Rating, encounter: &Encounter) {
+    assert!(
+        !f64::from(glicko.rating).is_nan(),
+        "invalid rating produced by {encounter:?}"
+    );
+    assert!(
+        !f64::from(glicko.deviation).is_nan(),
+        "invalid deviation produced by {encounter:?}"
+    );
+    assert!(
+        !f64::from(glicko.volatility).is_nan(),
+        "invalid volatility produced by {encounter:?}"
+    );
+    assert!(
+        !f64::from(glicko.at).is_nan(),
+        "invalid instant produced by {encounter:?}"
+    );
 }
 
 fuzz_target!(|data: &[u8]| {
@@ -54,10 +66,8 @@ fuzz_target!(|data: &[u8]| {
         return;
     };
 
-    let (Some(first), Some(second)) = (
-        encounter.first.into_clamped(),
-        encounter.second.into_clamped(),
-    ) else {
+    let (Some(first), Some(second)) = (encounter.first.to_clamped(), encounter.second.to_clamped())
+    else {
         return;
     };
 
@@ -73,6 +83,6 @@ fuzz_target!(|data: &[u8]| {
         Score(encounter.score.clamp(0.0, 1.0)),
         Instant(encounter.at),
     );
-    assert_rating(first);
-    assert_rating(second);
+    assert_rating(first, &encounter);
+    assert_rating(second, &encounter);
 });
