@@ -1,7 +1,9 @@
 #![no_main]
 
 use arbitrary::Arbitrary;
+use arbitrary::Unstructured;
 use libfuzzer_sys::fuzz_target;
+use liglicko2::{Instant, Rating, RatingDifference, RatingScalar, RatingSystem, Score, Volatility};
 
 #[derive(Arbitrary)]
 struct ArbitraryRating {
@@ -16,14 +18,14 @@ impl ArbitraryRating {
         if self.rating.is_nan()
             || self.deviation.is_nan()
             || self.volatility.is_nan()
-            || self.instant.is_nan()
+            || self.at.is_nan()
         {
             None
         } else {
             Some(Rating {
                 rating: RatingScalar(self.rating.clamp(-10000.0, 10000.0)),
                 deviation: RatingDifference(self.deviation.clamp(0.0, 1000.0)),
-                volatility: Volatility(self.volatility).clamp(0.0, 1.0),
+                volatility: Volatility(self.volatility.clamp(0.0, 1.0)),
                 at: Instant(self.at),
             })
         }
@@ -46,20 +48,31 @@ fn assert_rating(glicko: Rating) {
 }
 
 fuzz_target!(|data: &[u8]| {
-    let u = Unstructured::new(data);
-    let Ok(encounter) = Encounter::arbitrary(u) else {
+    let mut u = Unstructured::new(data);
+
+    let Ok(encounter) = Encounter::arbitrary(&mut u) else {
         return;
     };
-    let (Some(first), Some(second)) = (first.into_clamped(), second.into_clamped()) else {
+
+    let (Some(first), Some(second)) = (
+        encounter.first.into_clamped(),
+        encounter.second.into_clamped(),
+    ) else {
         return;
-    }
-    if score.is_nan() || at.is_nan() {
+    };
+
+    if encounter.score.is_nan() || encounter.at.is_nan() {
         return;
     }
 
     let rating_system = RatingSystem::new();
 
-    let (first, second) = rating_system.update_ratings(first, second, Score(score.clamp(0.0, 1.0), Instant(at)));
+    let (first, second) = rating_system.update_ratings(
+        &first,
+        &second,
+        Score(encounter.score.clamp(0.0, 1.0)),
+        Instant(encounter.at),
+    );
     assert_rating(first);
     assert_rating(second);
 });
