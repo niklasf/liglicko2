@@ -180,7 +180,7 @@ impl From<Volatility> for f64 {
 }
 
 /// A rating at a specific point in time.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Rating {
     pub rating: RatingScalar,
     pub deviation: RatingDifference,

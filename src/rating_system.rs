@@ -393,3 +393,19 @@ fn new_deviation(
 const CONVERGENCE_TOLERANCE: f64 = 0.000001;
 
 const MAX_ITERATIONS: u32 = 1000;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_plausible() {
+        let system = RatingSystem::new();
+
+        let (a, b) = (system.initial_rating(), system.initial_rating());
+        assert!((system.expected_score(&a, &b, Instant(1.0)).value() - 0.5).abs() < 0.0001);
+
+        let (a, b) = system.update_ratings(&a, &b, Score(1.0), Instant(2.0));
+        assert!(a.rating > b.rating);
+    }
+}
