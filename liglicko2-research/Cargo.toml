@@ -1,0 +1,8 @@
+[package]
+name = "liglicko2-research"
+publish = false
+edition = "2021"
+
+[dependencies]
+chrono = "0.4.38"
+liglicko2 = { path = ".." }
