@@ -24,6 +24,10 @@ fn main() -> io::Result<()> {
 
     let mut line = String::new();
     while stdin.read_line(&mut line)? != 0 {
+        if line.ends_with('\n') {
+            line.pop();
+        }
+
         if line.is_empty() {
             if !white.is_empty() {
                 writeln!(
@@ -55,13 +59,15 @@ fn main() -> io::Result<()> {
             result.clear();
             result.push_str(v);
         } else if let Some(v) = strip_prefix_suffix(&line, "[UTCDate \"", END_TAG) {
-            utc_date = v.parse().unwrap_or_default();
+            utc_date = NaiveDate::parse_from_str(v, "%Y.%m.%d").unwrap_or_default();
         } else if let Some(v) = strip_prefix_suffix(&line, "[UTCTime \"", END_TAG) {
             utc_time = v.parse().unwrap_or_default();
         } else if let Some(v) = strip_prefix_suffix(&line, "[TimeControl \"", END_TAG) {
             time_control.clear();
             time_control.push_str(v);
         }
+
+        line.clear();
     }
 
     Ok(())
