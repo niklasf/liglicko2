@@ -7,6 +7,18 @@ use crate::{Instant, Periods};
 use std::f64::consts::PI;
 
 /// Used to configure a rating system.
+///
+/// # Example
+///
+/// ```
+/// use liglicko2::{RatingScalar, RatingSystem};
+///
+/// let rating_system = RatingSystem::dangerous_builder()
+///     .min_rating(RatingScalar(-4000.0))
+///     .default_rating(RatingScalar(0.0))
+///     .max_rating(RatingScalar(4000.0))
+///     .build();
+/// ```
 #[derive(Debug, Clone)]
 pub struct RatingSystemBuilder {
     min_rating: RatingScalar,

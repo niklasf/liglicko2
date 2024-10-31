@@ -38,6 +38,21 @@ pub use score::Score;
 /// Lower is better.
 ///
 /// See <https://www.kaggle.com/c/ChessRatings2/overview/evaluation>.
+///
+/// # Example
+///
+/// ```
+/// use liglicko2::{deviance, Score};
+///
+/// let actual = Score(0.0);
+///
+/// let close_guess = deviance(Score(0.1), actual);
+/// let indifferent_guess = deviance(Score(0.5), actual);
+/// let far_guess = deviance(Score(0.9), actual);
+///
+/// assert!(close_guess < indifferent_guess);
+/// assert!(indifferent_guess < far_guess);
+/// ```
 pub fn deviance(expected: Score, actual: Score) -> f64 {
     let expected = expected.value().clamp(0.01, 0.99);
     let actual = actual.value();
