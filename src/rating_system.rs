@@ -1,10 +1,10 @@
-use crate::Instant;
-use crate::Score;
+use std::f64::consts::PI;
+
 use crate::{
     internal_rating::InternalRatingDifference,
     rating::{Rating, RatingDifference, RatingScalar, Volatility},
+    Instant, Score,
 };
-use std::f64::consts::PI;
 
 #[derive(Debug, Clone)]
 pub struct RatingSystemBuilder {
