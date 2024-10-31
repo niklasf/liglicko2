@@ -1,8 +1,9 @@
+use std::{
+    io,
+    io::{BufRead as _, BufWriter, Write as _},
+};
+
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
-use std::io;
-use std::io::BufRead as _;
-use std::io::BufWriter;
-use std::io::Write as _;
 
 fn strip_prefix_suffix<'a>(s: &'a str, prefix: &str, suffix: &str) -> Option<&'a str> {
     s.strip_prefix(prefix)?.strip_suffix(suffix)

@@ -1,15 +1,9 @@
-use chrono::NaiveDateTime;
-use liglicko2::Instant;
-use liglicko2::Rating;
-use liglicko2::RatingSystem;
-use liglicko2::Score;
+use std::{collections::BTreeMap, error::Error as StdError, io, str::FromStr};
+
+use chrono::{DateTime, NaiveDateTime, Utc};
+use liglicko2::{Instant, Rating, RatingSystem, Score};
 use serde::Deserialize;
-use serde_with::serde_as;
-use serde_with::DisplayFromStr;
-use std::collections::BTreeMap;
-use std::error::Error as StdError;
-use std::io;
-use std::str::FromStr;
+use serde_with::{serde_as, DisplayFromStr};
 use thiserror::Error;
 
 #[derive(Debug)]
@@ -108,6 +102,18 @@ impl GameResult {
     }
 }
 
+struct UtcDateTime(DateTime<Utc>);
+
+impl FromStr for UtcDateTime {
+    type Err = chrono::ParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(UtcDateTime(
+            NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S")?.and_utc(),
+        ))
+    }
+}
+
 #[serde_as]
 #[derive(Deserialize)]
 struct Encounter {
@@ -116,7 +122,7 @@ struct Encounter {
     #[serde_as(as = "DisplayFromStr")]
     result: GameResult,
     #[serde_as(as = "DisplayFromStr")]
-    date_time: NaiveDateTime,
+    date_time: UtcDateTime,
     #[serde_as(as = "DisplayFromStr")]
     time_control: TimeControl,
 }
@@ -129,7 +135,7 @@ fn main() -> Result<(), Box<dyn StdError>> {
         .has_headers(false)
         .from_reader(io::stdin().lock());
 
-    let to_instant = |date_time: NaiveDateTime| Instant(date_time.and_utc().timestamp() as f64);
+    let to_instant = |date_time: UtcDateTime| Instant(date_time.0.timestamp() as f64);
 
     for encounter in reader.deserialize() {
         let encounter: Encounter = encounter?;
