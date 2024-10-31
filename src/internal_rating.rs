@@ -22,7 +22,11 @@ impl From<InternalRatingDifference> for RatingDifference {
 }
 
 impl InternalRatingDifference {
-    pub fn clamp(self, InternalRatingDifference(min): InternalRatingDifference, InternalRatingDifference(max): InternalRatingDifference) -> InternalRatingDifference {
+    pub fn clamp(
+        self,
+        InternalRatingDifference(min): InternalRatingDifference,
+        InternalRatingDifference(max): InternalRatingDifference,
+    ) -> InternalRatingDifference {
         InternalRatingDifference(f64::from(self).clamp(min, max))
     }
 

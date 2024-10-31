@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign, Neg};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use crate::{internal_rating::InternalRatingDifference, Instant};
 
@@ -8,7 +8,11 @@ use crate::{internal_rating::InternalRatingDifference, Instant};
 pub struct RatingScalar(pub f64);
 
 impl RatingScalar {
-    pub fn clamp(self, RatingScalar(min): RatingScalar, RatingScalar(max): RatingScalar) -> RatingScalar {
+    pub fn clamp(
+        self,
+        RatingScalar(min): RatingScalar,
+        RatingScalar(max): RatingScalar,
+    ) -> RatingScalar {
         RatingScalar(f64::from(self).clamp(min, max))
     }
 }
@@ -66,7 +70,11 @@ impl From<RatingDifference> for f64 {
 }
 
 impl RatingDifference {
-    pub fn clamp(self, RatingDifference(min): RatingDifference, RatingDifference(max): RatingDifference) -> RatingDifference {
+    pub fn clamp(
+        self,
+        RatingDifference(min): RatingDifference,
+        RatingDifference(max): RatingDifference,
+    ) -> RatingDifference {
         RatingDifference(f64::from(self).clamp(min, max))
     }
 
