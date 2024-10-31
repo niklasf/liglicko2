@@ -135,7 +135,9 @@ fn main() -> Result<(), Box<dyn StdError>> {
         .has_headers(false)
         .from_reader(io::stdin().lock());
 
-    let to_instant = |date_time: UtcDateTime| Instant(date_time.0.timestamp() as f64);
+    let to_instant = |date_time: UtcDateTime| {
+        Instant(date_time.0.timestamp() as f64 / (60.0 * 60.0 * 24.0) * 0.21436)
+    };
 
     for encounter in reader.deserialize() {
         let encounter: Encounter = encounter?;
