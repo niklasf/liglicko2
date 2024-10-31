@@ -47,8 +47,11 @@ pub use score::Score;
 /// let actual = Score(0.0);
 ///
 /// let close_guess = deviance(Score(0.1), actual);
+/// // 0.0457...
 /// let indifferent_guess = deviance(Score(0.5), actual);
-/// let far_guess = deviance(Score(0.9), actual);
+/// // 0.3010 ...
+/// let far_guess = deviance(Score(0.95), actual);
+/// // 1.3010 ...
 ///
 /// assert!(close_guess < indifferent_guess);
 /// assert!(indifferent_guess < far_guess);
