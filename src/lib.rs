@@ -18,8 +18,7 @@
 //! When using the provided default parameters, this implementations promises:
 //!
 //! - If all inputs are non-NaN, then all outputs will be non-NaN.
-//! - All methods return in `O(1)`, in particular there are no panics and the
-//!   internal iterative algorithm always converges.
+//! - The will never be a [`ConvergenceError`].
 
 mod instant;
 mod internal_rating;
@@ -29,7 +28,7 @@ mod score;
 
 pub use instant::{Instant, Periods};
 pub use rating::{Rating, RatingDifference, RatingScalar, Volatility};
-pub use rating_system::{RatingSystem, RatingSystemBuilder};
+pub use rating_system::{ConvergenceError, RatingSystem, RatingSystemBuilder};
 pub use score::Score;
 
 /// Log likelihood deviance metric that can be used to evaluate the quality of

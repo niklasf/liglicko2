@@ -77,12 +77,15 @@ fuzz_target!(|data: &[u8]| {
 
     let rating_system = RatingSystem::new();
 
-    let (first, second) = rating_system.update_ratings(
-        &first,
-        &second,
-        Score(encounter.score),
-        Instant(encounter.at),
-    );
+    let (first, second) = rating_system
+        .update_ratings(
+            &first,
+            &second,
+            Score(encounter.score),
+            Instant(encounter.at),
+        )
+        .expect("faield to converge for {encounter:?}");
+
     assert_rating(first, &encounter);
     assert_rating(second, &encounter);
 });

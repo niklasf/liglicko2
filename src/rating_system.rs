@@ -4,7 +4,9 @@ use crate::{
     rating::{Rating, RatingDifference, RatingScalar, Volatility},
 };
 use crate::{Instant, Periods};
+use std::error::Error;
 use std::f64::consts::PI;
+use std::fmt;
 
 /// Used to configure a rating system.
 ///
@@ -13,7 +15,7 @@ use std::f64::consts::PI;
 /// ```
 /// use liglicko2::{RatingScalar, RatingSystem};
 ///
-/// let rating_system = RatingSystem::dangerous_builder()
+/// let rating_system = RatingSystem::builder()
 ///     .min_rating(RatingScalar(-4000.0))
 ///     .default_rating(RatingScalar(0.0))
 ///     .max_rating(RatingScalar(4000.0))
@@ -200,14 +202,11 @@ impl Default for RatingSystem {
 }
 
 impl RatingSystem {
-    /// Build a rating system with non-default parameters. Only the default
-    /// parameters are guarantee numeric stability. In particular:
+    /// Build a rating system with non-default parameters.
     ///
-    /// * The iterative algorithm used to calculate the expected score may not
-    ///   converge, resulting in a panic after a maximum number of iterations.
-    /// * The usual guarantee of non-NaN outputs for non-NaN inputs is not
-    ///   upheld.
-    pub fn dangerous_builder() -> RatingSystemBuilder {
+    /// Note that using non-default parameters waives the promises with regard
+    /// to numeric stability and convergence of the rating update algorithm.
+    pub fn builder() -> RatingSystemBuilder {
         // Remember to update docs if defaults are changed.
         RatingSystemBuilder {
             min_rating: RatingScalar(400.0),
@@ -233,7 +232,7 @@ impl RatingSystem {
     }
 
     pub fn new() -> RatingSystem {
-        RatingSystem::dangerous_builder().build()
+        RatingSystem::builder().build()
     }
 
     pub fn min_rating(&self) -> RatingScalar {
@@ -334,9 +333,9 @@ impl RatingSystem {
     /// Update the ratings of both players, given the score of a game between
     /// between them.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Panics if the internal iterative algorithm does not converge within
+    /// Errors if the internal iterative algorithm does not converge within
     /// the maximum number of iterations. Will not happen when using default
     /// parameters for the rating system.
     #[must_use]
@@ -346,21 +345,21 @@ impl RatingSystem {
         second: &Rating,
         score: Score,
         now: Instant,
-    ) -> (Rating, Rating) {
+    ) -> Result<(Rating, Rating), ConvergenceError> {
         let first = self.clamp_rating(first);
         let second = self.clamp_rating(second);
         let score = score.clamp(Score::LOSS, Score::WIN);
 
-        (
-            self.update_rating(&first, &second, score, now, self.first_advantage),
+        Ok((
+            self.update_rating(&first, &second, score, now, self.first_advantage)?,
             self.update_rating(
                 &second,
                 &first,
                 score.opposite(),
                 now,
                 -self.first_advantage,
-            ),
-        )
+            )?,
+        ))
     }
 
     fn update_rating(
@@ -370,7 +369,7 @@ impl RatingSystem {
         score: Score,
         now: Instant,
         advantage: RatingDifference,
-    ) -> Rating {
+    ) -> Result<Rating, ConvergenceError> {
         let phi = us.deviation.to_internal();
 
         // Step 3
@@ -417,7 +416,7 @@ impl RatingSystem {
         while f64::abs(big_b - big_a) > self.convergence_tolerance {
             iterations += 1;
             if iterations > self.max_convergence_iterations {
-                panic!("failed to converge for {us:?} vs {them:?} with {score:?} and advantage {advantage:?} at {now:?}");
+                return Err(ConvergenceError { _priv: () });
             }
 
             let big_c = big_a + (big_a - big_b) * f_a / (f_b - f_a);
@@ -455,12 +454,12 @@ impl RatingSystem {
             InternalRatingDifference(phi_prime.sq() * their_g * Score::value(score - expected));
 
         // Step 8
-        self.clamp_rating(&Rating {
+        Ok(self.clamp_rating(&Rating {
             rating: us.rating + mu_prime_diff.into(),
             deviation: RatingDifference::from(phi_prime),
             volatility: sigma_prime,
             at: now,
-        })
+        }))
     }
 
     fn clamp_rating(&self, rating: &Rating) -> Rating {
@@ -498,6 +497,26 @@ fn new_deviation(
     ))
 }
 
+/// Glicko-2 rating update algorithm failed to convergence.
+#[derive(Clone)]
+pub struct ConvergenceError {
+    _priv: (),
+}
+
+impl fmt::Debug for ConvergenceError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("ConvergenceError").finish_non_exhaustive()
+    }
+}
+
+impl fmt::Display for ConvergenceError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "failed to converge")
+    }
+}
+
+impl Error for ConvergenceError {}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -509,7 +528,10 @@ mod tests {
         let (a, b) = (system.initial_rating(), system.initial_rating());
         assert!((system.expected_score(&a, &b, Instant(1.0)).value() - 0.5).abs() < 0.0001);
 
-        let (a, b) = system.update_ratings(&a, &b, Score(1.0), Instant(2.0));
+        let (a, b) = system
+            .update_ratings(&a, &b, Score(1.0), Instant(2.0))
+            .unwrap();
+
         assert!(a.rating > b.rating);
     }
 }
