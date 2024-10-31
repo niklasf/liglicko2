@@ -80,7 +80,7 @@ fuzz_target!(|data: &[u8]| {
     let (first, second) = rating_system.update_ratings(
         &first,
         &second,
-        Score(encounter.score.clamp(0.0, 1.0)),
+        Score(encounter.score),
         Instant(encounter.at),
     );
     assert_rating(first, &encounter);

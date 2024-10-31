@@ -6,28 +6,35 @@ use std::ops;
 pub struct Score(pub f64);
 
 impl From<Score> for f64 {
+    #[inline]
     fn from(Score(score): Score) -> f64 {
         score
     }
 }
 
 impl Score {
+    #[inline]
     pub fn opposite(self) -> Score {
         Score(1.0 - self.0)
     }
 
+    #[inline]
     pub fn value(self) -> f64 {
         self.0
     }
 
-    pub fn clamp(self, Score(min): Score, Score(max): Score) -> Score {
-        Score(f64::from(self).clamp(min, max))
+    #[inline]
+    pub fn clamp(self, min: Score, max: Score) -> Score {
+        Score(self.value().clamp(min.value(), max.value()))
     }
 }
 
 impl Score {
+    /// `Score(0.0)`.
     pub const LOSS: Score = Score(0.0);
+    /// `Score(0.5)`.
     pub const DRAW: Score = Score(0.5);
+    /// `Score(1.0)`.
     pub const WIN: Score = Score(1.0);
 }
 

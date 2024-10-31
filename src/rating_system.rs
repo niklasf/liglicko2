@@ -1,10 +1,10 @@
-use std::f64::consts::PI;
-
+use crate::Instant;
+use crate::Score;
 use crate::{
     internal_rating::InternalRatingDifference,
     rating::{Rating, RatingDifference, RatingScalar, Volatility},
-    Instant, Score,
 };
+use std::f64::consts::PI;
 
 #[derive(Debug, Clone)]
 pub struct RatingSystemBuilder {
@@ -269,6 +269,7 @@ impl RatingSystem {
     ) -> (Rating, Rating) {
         let first = self.clamp_rating(first);
         let second = self.clamp_rating(second);
+        let score = score.clamp(Score::LOSS, Score::WIN);
 
         (
             self.update_rating(&first, &second, score, now, self.first_advantage),
