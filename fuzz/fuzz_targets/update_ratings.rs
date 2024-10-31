@@ -14,7 +14,7 @@ struct ArbitraryRating {
 }
 
 impl ArbitraryRating {
-    fn to_clamped(&self) -> Option<Rating> {
+    fn non_nan(&self) -> Option<Rating> {
         if self.rating.is_nan()
             || self.deviation.is_nan()
             || self.volatility.is_nan()
@@ -23,9 +23,9 @@ impl ArbitraryRating {
             None
         } else {
             Some(Rating {
-                rating: RatingScalar(self.rating.clamp(-10000.0, 10000.0)),
-                deviation: RatingDifference(self.deviation.clamp(0.0, 1000.0)),
-                volatility: Volatility(self.volatility.clamp(0.0, 1.0)),
+                rating: RatingScalar(self.rating),
+                deviation: RatingDifference(self.deviation),
+                volatility: Volatility(self.volatility),
                 at: Instant(self.at),
             })
         }
@@ -66,7 +66,7 @@ fuzz_target!(|data: &[u8]| {
         return;
     };
 
-    let (Some(first), Some(second)) = (encounter.first.to_clamped(), encounter.second.to_clamped())
+    let (Some(first), Some(second)) = (encounter.first.non_nan(), encounter.second.non_nan())
     else {
         return;
     };

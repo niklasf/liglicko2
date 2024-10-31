@@ -39,7 +39,7 @@ impl RatingSystemBuilder {
             max_rating: RatingScalar(4000.0),
             default_rating: RatingScalar(1500.0),
 
-            min_volatility: Volatility(0.0),
+            min_volatility: Volatility(0.01),
             max_volatility: Volatility(0.1),
             default_volatility: Volatility(0.09),
 
@@ -234,6 +234,8 @@ impl RatingSystem {
     }
 
     pub fn preview_deviation(&self, rating: &Rating, now: Instant) -> RatingDifference {
+        let rating = self.clamp_rating(rating);
+
         RatingDifference::from(new_deviation(
             rating.deviation.to_internal(),
             rating.volatility,
@@ -243,11 +245,14 @@ impl RatingSystem {
     }
 
     pub fn expected_score(&self, first: &Rating, second: &Rating, now: Instant) -> Score {
+        let first = self.clamp_rating(first);
+        let second = self.clamp_rating(second);
+
         expectation_value(
             (first.rating + self.first_advantage - second.rating).to_internal(),
             g(RatingDifference::to_internal(
                 if self.preview_opponent_deviation {
-                    self.preview_deviation(second, now)
+                    self.preview_deviation(&second, now)
                 } else {
                     second.deviation
                 },
@@ -262,9 +267,18 @@ impl RatingSystem {
         score: Score,
         now: Instant,
     ) -> (Rating, Rating) {
+        let first = self.clamp_rating(first);
+        let second = self.clamp_rating(second);
+
         (
-            self.update_rating(first, second, score, now, self.first_advantage),
-            self.update_rating(second, first, score.opposite(), now, -self.first_advantage),
+            self.update_rating(&first, &second, score, now, self.first_advantage),
+            self.update_rating(
+                &second,
+                &first,
+                score.opposite(),
+                now,
+                -self.first_advantage,
+            ),
         )
     }
 
@@ -360,11 +374,24 @@ impl RatingSystem {
             InternalRatingDifference(phi_prime.sq() * their_g * Score::value(score - expected));
 
         // Step 8
-        Rating {
-            rating: (us.rating + mu_prime_diff.into()).clamp(self.min_rating, self.max_rating),
+        self.clamp_rating(&Rating {
+            rating: us.rating + mu_prime_diff.into(),
             deviation: RatingDifference::from(phi_prime),
             volatility: sigma_prime,
             at: now,
+        })
+    }
+
+    fn clamp_rating(&self, rating: &Rating) -> Rating {
+        Rating {
+            rating: rating.rating.clamp(self.min_rating, self.max_rating),
+            deviation: rating
+                .deviation
+                .clamp(self.min_deviation, self.max_deviation),
+            volatility: rating
+                .volatility
+                .clamp(self.min_volatility, self.max_volatility),
+            at: rating.at,
         }
     }
 }
