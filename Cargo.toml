@@ -1,6 +1,11 @@
 [package]
 name = "liglicko2"
 version = "0.1.0"
+description = "Lichess-flavored Glicko-2 rating system"
+repository = "https://github.com/niklasf/liglicko2"
+readme = "README.md"
+license = "APACHE-2.0 or MIT"
+authors = ["Niklas Fiekas <niklas.fiekas@backscattering.de>"]
+categories = ["game-development", "mathematics"]
+keywords = ["chess", "lichess"]
 edition = "2021"
-
-[dependencies]
