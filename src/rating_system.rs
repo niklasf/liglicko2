@@ -308,7 +308,7 @@ impl RatingSystem {
         }
 
         // Step 5.5
-        let sigma_prime = Volatility(f64::exp(big_a / 2.0));
+        let sigma_prime = Volatility(f64::exp(big_a / 2.0)).clamp(self.min_volatility, self.max_volatility);
 
         // Step 6
         let phi_star = new_deviation(
@@ -329,7 +329,7 @@ impl RatingSystem {
         Rating {
             rating: (us.rating + mu_prime_diff.into()).clamp(self.min_rating, self.max_rating),
             deviation: RatingDifference::from(phi_prime),
-            volatility: sigma_prime.clamp(self.min_volatility, self.max_volatility),
+            volatility: sigma_prime,
             at: now,
         }
     }
