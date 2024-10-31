@@ -66,6 +66,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "compensated-summation"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed1a3144e513c51ca811317ee1255c50200e4d87d4719d31beecef44cca71469"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "core-foundation-sys"
 version = "0.8.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -248,6 +257,7 @@ name = "liglicko2-research"
 version = "0.0.0"
 dependencies = [
  "chrono",
+ "compensated-summation",
  "csv",
  "liglicko2",
  "serde",

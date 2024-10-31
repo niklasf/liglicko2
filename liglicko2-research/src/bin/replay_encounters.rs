@@ -1,6 +1,8 @@
 use std::{collections::BTreeMap, error::Error as StdError, io, str::FromStr};
 
 use chrono::{DateTime, NaiveDateTime, Utc};
+use compensated_summation::KahanBabuskaNeumaier;
+use liglicko2::deviance;
 use liglicko2::{Instant, Rating, RatingSystem, Score};
 use serde::Deserialize;
 use serde_with::{serde_as, DisplayFromStr};
@@ -139,9 +141,14 @@ fn main() -> Result<(), Box<dyn StdError>> {
         Instant(date_time.0.timestamp() as f64 / (60.0 * 60.0 * 24.0) * 0.21436)
     };
 
+    let mut total_deviance = KahanBabuskaNeumaier::new();
+    let mut total_games: u64 = 0;
+
     for encounter in reader.deserialize() {
         let encounter: Encounter = encounter?;
         let speed = encounter.time_control.speed();
+        let actual_score = encounter.result.white_score();
+        let now = to_instant(encounter.date_time);
 
         let white = leaderboard
             .get(&(encounter.white.clone(), speed))
@@ -153,13 +160,14 @@ fn main() -> Result<(), Box<dyn StdError>> {
             .cloned()
             .unwrap_or_else(|| rating_system.new_rating());
 
+        total_deviance += deviance(
+            rating_system.expected_score(&white, &black, now),
+            actual_score,
+        );
+        total_games += 1;
+
         let (white, black) = rating_system
-            .update_ratings(
-                &white,
-                &black,
-                encounter.result.white_score(),
-                to_instant(encounter.date_time),
-            )
+            .update_ratings(&white, &black, actual_score, now)
             .unwrap();
 
         leaderboard.insert((encounter.white, speed), white);
@@ -172,6 +180,13 @@ fn main() -> Result<(), Box<dyn StdError>> {
             player, speed, rating.rating.0, rating.deviation.0, rating.volatility.0
         );
     }
+
+    println!("---");
+    println!("Total games: {}", total_games);
+    println!(
+        "Average deviance: {}",
+        total_deviance.total() / total_games as f64
+    );
 
     Ok(())
 }
