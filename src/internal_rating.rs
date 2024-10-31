@@ -1,6 +1,6 @@
 use crate::rating::RatingDifference;
 
-pub const INTERNAL_RATING_SCALE: f64 = 173.7178;
+const INTERNAL_RATING_SCALE: f64 = 173.7178;
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct InternalRatingDifference(pub f64);
