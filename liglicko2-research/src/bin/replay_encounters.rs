@@ -1,5 +1,14 @@
 use chrono::NaiveDateTime;
+use liglicko2::Instant;
+use liglicko2::Rating;
+use liglicko2::RatingSystem;
+use liglicko2::Score;
+use serde::Deserialize;
+use serde_with::serde_as;
+use serde_with::DisplayFromStr;
+use std::collections::BTreeMap;
 use std::error::Error as StdError;
+use std::io;
 use std::str::FromStr;
 use thiserror::Error;
 
@@ -56,7 +65,7 @@ impl TimeControl {
     }
 }
 
-#[derive(Debug, Hash, Eq, PartialEq)]
+#[derive(Debug, Hash, Eq, PartialEq, Ord, PartialOrd, Copy, Clone)]
 enum Speed {
     UltraBullet,
     Bullet,
@@ -89,14 +98,72 @@ impl FromStr for GameResult {
     }
 }
 
+impl GameResult {
+    fn white_score(self) -> Score {
+        match self {
+            GameResult::WhiteWins => Score::WIN,
+            GameResult::BlackWins => Score::LOSS,
+            GameResult::Draw => Score::DRAW,
+        }
+    }
+}
+
+#[serde_as]
+#[derive(Deserialize)]
 struct Encounter {
     white: String,
     black: String,
+    #[serde_as(as = "DisplayFromStr")]
     result: GameResult,
+    #[serde_as(as = "DisplayFromStr")]
     date_time: NaiveDateTime,
+    #[serde_as(as = "DisplayFromStr")]
     time_control: TimeControl,
 }
 
 fn main() -> Result<(), Box<dyn StdError>> {
+    let rating_system = RatingSystem::new();
+    let mut leaderboard: BTreeMap<(String, Speed), Rating> = BTreeMap::new();
+
+    let mut reader = csv::ReaderBuilder::new()
+        .has_headers(false)
+        .from_reader(io::stdin().lock());
+
+    let to_instant = |date_time: NaiveDateTime| Instant(date_time.and_utc().timestamp() as f64);
+
+    for encounter in reader.deserialize() {
+        let encounter: Encounter = encounter?;
+        let speed = encounter.time_control.speed();
+
+        let white = leaderboard
+            .get(&(encounter.white.clone(), speed))
+            .cloned()
+            .unwrap_or_else(|| rating_system.new_rating());
+
+        let black = leaderboard
+            .get(&(encounter.black.clone(), speed))
+            .cloned()
+            .unwrap_or_else(|| rating_system.new_rating());
+
+        let (white, black) = rating_system
+            .update_ratings(
+                &white,
+                &black,
+                encounter.result.white_score(),
+                to_instant(encounter.date_time),
+            )
+            .unwrap();
+
+        leaderboard.insert((encounter.white, speed), white);
+        leaderboard.insert((encounter.black, speed), black);
+    }
+
+    for ((player, speed), rating) in leaderboard {
+        println!(
+            "{},{:?},{},{},{}",
+            player, speed, rating.rating.0, rating.deviation.0, rating.volatility.0
+        );
+    }
+
     Ok(())
 }
