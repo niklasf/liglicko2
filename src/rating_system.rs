@@ -37,6 +37,9 @@ pub struct RatingSystemBuilder {
     preview_opponent_deviation: bool,
 
     tau: f64,
+
+    convergence_tolerance: f64,
+    max_convergence_iterations: u32,
 }
 
 impl RatingSystemBuilder {
@@ -116,6 +119,22 @@ impl RatingSystemBuilder {
         self
     }
 
+    /// Set the tolerance for the convergence in step 5.4 of the Glicko-2
+    /// algorithm. The default is `1e-6`.
+    pub fn convergence_tolerance(&mut self, convergence_tolerance: f64) -> &mut Self {
+        assert!(convergence_tolerance > 0.0);
+        self.convergence_tolerance = convergence_tolerance;
+        self
+    }
+
+    /// Set the maximum number of iterations for the convergence in step 5.4 of
+    /// the Glicko-2 algorithm. The default is `1000`.
+    pub fn max_convergence_iterations(&mut self, max_convergence_iterations: u32) -> &mut Self {
+        assert!(max_convergence_iterations > 0);
+        self.max_convergence_iterations = max_convergence_iterations;
+        self
+    }
+
     pub fn build(&self) -> RatingSystem {
         assert!(self.min_rating <= self.max_rating);
         assert!(self.min_deviation <= self.max_deviation);
@@ -138,6 +157,9 @@ impl RatingSystemBuilder {
             preview_opponent_deviation: self.preview_opponent_deviation,
 
             tau: self.tau,
+
+            convergence_tolerance: self.convergence_tolerance,
+            max_convergence_iterations: self.max_convergence_iterations,
         }
     }
 }
@@ -166,6 +188,9 @@ pub struct RatingSystem {
     preview_opponent_deviation: bool,
 
     tau: f64,
+
+    convergence_tolerance: f64,
+    max_convergence_iterations: u32,
 }
 
 impl Default for RatingSystem {
@@ -201,6 +226,9 @@ impl RatingSystem {
             preview_opponent_deviation: false,
 
             tau: 0.75,
+
+            convergence_tolerance: 1e-6,
+            max_convergence_iterations: 1000,
         }
     }
 
@@ -252,6 +280,14 @@ impl RatingSystem {
         self.tau
     }
 
+    pub fn convergence_tolerance(&self) -> f64 {
+        self.convergence_tolerance
+    }
+
+    pub fn max_convergence_iterations(&self) -> u32 {
+        self.max_convergence_iterations
+    }
+
     /// Construct an initial rating for a new player.
     pub fn initial_rating(&self) -> Rating {
         Rating {
@@ -297,6 +333,12 @@ impl RatingSystem {
 
     /// Update the ratings of both players, given the score of a game between
     /// between them.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the internal iterative algorithm does not converge within
+    /// the maximum number of iterations. Will not happen when using default
+    /// parameters for the rating system.
     #[must_use]
     pub fn update_ratings(
         &self,
@@ -372,9 +414,9 @@ impl RatingSystem {
 
         // Step 5.4
         let mut iterations = 0;
-        while f64::abs(big_b - big_a) > CONVERGENCE_TOLERANCE {
+        while f64::abs(big_b - big_a) > self.convergence_tolerance {
             iterations += 1;
-            if iterations > MAX_ITERATIONS {
+            if iterations > self.max_convergence_iterations {
                 panic!("failed to converge for {us:?} vs {them:?} with {score:?} and advantage {advantage:?} at {now:?}");
             }
 
@@ -455,10 +497,6 @@ fn new_deviation(
         deviation.sq() + f64::max(elapsed.0, 0.0) * volatility.sq(),
     ))
 }
-
-const CONVERGENCE_TOLERANCE: f64 = 0.000001;
-
-const MAX_ITERATIONS: u32 = 1000;
 
 #[cfg(test)]
 mod tests {
