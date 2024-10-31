@@ -7,5 +7,5 @@ readme = "README.md"
 license = "APACHE-2.0 or MIT"
 authors = ["Niklas Fiekas <niklas.fiekas@backscattering.de>"]
 categories = ["game-development", "mathematics"]
-keywords = ["chess", "lichess"]
+keywords = ["chess", "lichess", "glicko-2"]
 edition = "2021"
