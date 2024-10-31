@@ -209,7 +209,7 @@ impl RatingSystem {
         Rating {
             rating: self.default_rating.clamp(self.min_rating, self.max_rating),
             deviation: self.max_deviation,
-            volatility: self.default_volatility,
+            volatility: self.default_volatility.clamp(self.min_volatility, self.max_volatility),
             at: Instant::default(),
         }
     }
