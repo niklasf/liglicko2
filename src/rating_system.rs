@@ -1,11 +1,12 @@
-use crate::Instant;
 use crate::Score;
 use crate::{
     internal_rating::InternalRatingDifference,
     rating::{Rating, RatingDifference, RatingScalar, Volatility},
 };
+use crate::{Instant, Periods};
 use std::f64::consts::PI;
 
+/// Used to configure a rating system.
 #[derive(Debug, Clone)]
 pub struct RatingSystemBuilder {
     min_rating: RatingScalar,
@@ -55,13 +56,13 @@ impl RatingSystemBuilder {
     }
 
     pub fn min_rating(&mut self, min_rating: RatingScalar) -> &mut Self {
-        assert!(!f64::from(min_rating).is_nan());
+        assert!(!min_rating.0.is_nan());
         self.min_rating = min_rating;
         self
     }
 
     pub fn max_rating(&mut self, max_rating: RatingScalar) -> &mut Self {
-        assert!(!f64::from(max_rating).is_nan());
+        assert!(!max_rating.0.is_nan());
         self.max_rating = max_rating;
         self
     }
@@ -143,6 +144,7 @@ impl RatingSystemBuilder {
     }
 }
 
+/// Rating system parameters.
 #[derive(Debug, Clone)]
 pub struct RatingSystem {
     min_rating: RatingScalar,
@@ -222,6 +224,7 @@ impl RatingSystem {
         self.tau
     }
 
+    /// Construct an initial rating for a new player.
     pub fn initial_rating(&self) -> Rating {
         Rating {
             rating: self.default_rating.clamp(self.min_rating, self.max_rating),
@@ -233,17 +236,21 @@ impl RatingSystem {
         }
     }
 
-    pub fn preview_deviation(&self, rating: &Rating, now: Instant) -> RatingDifference {
+    /// Preview the rating deviation that a player will have at a future
+    /// point in time if no games are played until then.
+    pub fn preview_deviation(&self, rating: &Rating, at: Instant) -> RatingDifference {
         let rating = self.clamp_rating(rating);
 
         RatingDifference::from(new_deviation(
             rating.deviation.to_internal(),
             rating.volatility,
-            now.elapsed_periods_since(rating.at),
+            at.elapsed_since(rating.at),
         ))
         .clamp(self.min_deviation, self.max_deviation)
     }
 
+    /// Calculate the expected score for the first player in a game against the
+    /// second player.
     pub fn expected_score(&self, first: &Rating, second: &Rating, now: Instant) -> Score {
         let first = self.clamp_rating(first);
         let second = self.clamp_rating(second);
@@ -260,6 +267,9 @@ impl RatingSystem {
         )
     }
 
+    /// Update the ratings of both players, given the score of a game between
+    /// between them.
+    #[must_use]
     pub fn update_ratings(
         &self,
         first: &Rating,
@@ -362,7 +372,7 @@ impl RatingSystem {
         let phi_star = new_deviation(
             us.deviation.to_internal(),
             sigma_prime,
-            now.elapsed_periods_since(us.at),
+            now.elapsed_since(us.at),
         );
 
         // Step 7
@@ -411,10 +421,10 @@ fn expectation_value(
 fn new_deviation(
     deviation: InternalRatingDifference,
     volatility: Volatility,
-    elapsed_periods: f64,
+    elapsed: Periods,
 ) -> InternalRatingDifference {
     InternalRatingDifference(f64::sqrt(
-        deviation.sq() + f64::max(elapsed_periods, 0.0) * volatility.sq(),
+        deviation.sq() + f64::max(elapsed.0, 0.0) * volatility.sq(),
     ))
 }
 

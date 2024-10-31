@@ -182,8 +182,16 @@ impl From<Volatility> for f64 {
 /// A rating at a specific point in time.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Rating {
+    /// Number indicating playing strength. Higher is better. The difference
+    /// between two ratings determines the expected score in a game between
+    /// the two players.
     pub rating: RatingScalar,
+    /// Uncertainty in the rating. A range from rating minus twice the deviation
+    /// to rating plus twice the deviation approximately represents a 95%
+    /// confidence interval.
     pub deviation: RatingDifference,
+    /// Number indicating the degree of expected fluctuation in the rating.
     pub volatility: Volatility,
+    /// Point in time at which the rating was last updated.
     pub at: Instant,
 }
