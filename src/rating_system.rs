@@ -27,92 +27,78 @@ pub struct RatingSystemBuilder {
     tau: f64,
 }
 
-impl Default for RatingSystemBuilder {
-    fn default() -> RatingSystemBuilder {
-        RatingSystemBuilder::new()
-    }
-}
-
 impl RatingSystemBuilder {
-    pub fn new() -> RatingSystemBuilder {
-        RatingSystemBuilder {
-            min_rating: RatingScalar(400.0),
-            max_rating: RatingScalar(4000.0),
-            default_rating: RatingScalar(1500.0),
-
-            min_volatility: Volatility(0.01),
-            max_volatility: Volatility(0.1),
-            default_volatility: Volatility(0.09),
-
-            min_deviation: RatingDifference(45.0),
-            max_deviation: RatingDifference(500.0),
-
-            first_advantage: RatingDifference(0.0),
-
-            preview_opponent_deviation: false,
-
-            tau: 0.75,
-        }
-    }
-
+    /// Set the minimum rating allowed by the system. The default is `400.0`.
     pub fn min_rating(&mut self, min_rating: RatingScalar) -> &mut Self {
         assert!(!min_rating.0.is_nan());
         self.min_rating = min_rating;
         self
     }
 
+    /// Set the maximum rating allowed by the system. The default is `4000.0`.
     pub fn max_rating(&mut self, max_rating: RatingScalar) -> &mut Self {
         assert!(!max_rating.0.is_nan());
         self.max_rating = max_rating;
         self
     }
 
+    /// Set the default rating for new players. The default is `1500.0`.
     pub fn default_rating(&mut self, default_rating: RatingScalar) -> &mut Self {
         self.default_rating = default_rating;
         self
     }
 
+    /// Set the minimum volatility allowed by the system. The default is `0.01`.
     pub fn min_volatility(&mut self, min_volatility: Volatility) -> &mut Self {
         assert!(min_volatility >= Volatility(0.0));
         self.min_volatility = min_volatility;
         self
     }
 
+    /// Set the maximum volatility allowed by the system. The default is `0.1`.
     pub fn max_volatility(&mut self, max_volatility: Volatility) -> &mut Self {
         assert!(max_volatility >= Volatility(0.0));
         self.max_volatility = max_volatility;
         self
     }
 
+    /// Set the default volatility for new players. The default is `0.09`.
     pub fn default_volatility(&mut self, default_volatility: Volatility) -> &mut Self {
         assert!(default_volatility >= Volatility(0.0));
         self.default_volatility = default_volatility;
         self
     }
 
+    /// Set the minimum deviation allowed by the system. The default is `45.0`.
     pub fn min_deviation(&mut self, min_deviation: RatingDifference) -> &mut Self {
         assert!(min_deviation >= RatingDifference(0.0));
         self.min_deviation = min_deviation;
         self
     }
 
+    /// Set the maximum deviation allowed by the system. The default is `500.0`.
     pub fn max_deviation(&mut self, max_deviation: RatingDifference) -> &mut Self {
         assert!(max_deviation >= RatingDifference(0.0));
         self.max_deviation = max_deviation;
         self
     }
 
+    /// Set the inherent advantage for the first player. The default is `0.0`.
     pub fn first_advantage(&mut self, first_advantage: RatingDifference) -> &mut Self {
         self.first_advantage = first_advantage;
         self
     }
 
+    /// Set the tau parameter for the rating system. Smaller tau leads to
+    /// smaller changes to volatilities. The default is `0.75`.
     pub fn tau(&mut self, tau: f64) -> &mut Self {
         assert!(tau >= 0.0);
         self.tau = tau;
         self
     }
 
+    /// Set whether to apply time decay to the second rating deviation when
+    /// updating the first rating and vice versa. The default is `false`.
     pub fn preview_opponent_deviation(&mut self, preview_opponent_deviation: bool) -> &mut Self {
         self.preview_opponent_deviation = preview_opponent_deviation;
         self
@@ -144,7 +130,12 @@ impl RatingSystemBuilder {
     }
 }
 
-/// Rating system parameters.
+/// Rating system parameters. Used to perform the main operations provided
+/// by the rating system.
+///
+/// - Construct a new rating.
+/// - Calculate the expected score for a game between two rated players.
+/// - Calculate the new ratings for two players after a game.
 #[derive(Debug, Clone)]
 pub struct RatingSystem {
     min_rating: RatingScalar,
@@ -172,12 +163,37 @@ impl Default for RatingSystem {
 }
 
 impl RatingSystem {
-    pub fn builder() -> RatingSystemBuilder {
-        RatingSystemBuilder::default()
+    /// Build a rating system with non-default parameters. Only the default
+    /// parameters are guarantee numeric stability. In particular:
+    ///
+    /// * The iterative algorithm used to calculate the expected score may not
+    ///   converge, resulting in a panic after a maximum number of iterations.
+    /// * The usual guarantee of non-NaN outputs for non-NaN inputs is not
+    ///   upheld.
+    pub fn dangerous_builder() -> RatingSystemBuilder {
+        // Remember to update docs if defaults are changed.
+        RatingSystemBuilder {
+            min_rating: RatingScalar(400.0),
+            max_rating: RatingScalar(4000.0),
+            default_rating: RatingScalar(1500.0),
+
+            min_volatility: Volatility(0.01),
+            max_volatility: Volatility(0.1),
+            default_volatility: Volatility(0.09),
+
+            min_deviation: RatingDifference(45.0),
+            max_deviation: RatingDifference(500.0),
+
+            first_advantage: RatingDifference(0.0),
+
+            preview_opponent_deviation: false,
+
+            tau: 0.75,
+        }
     }
 
     pub fn new() -> RatingSystem {
-        RatingSystem::builder().build()
+        RatingSystem::dangerous_builder().build()
     }
 
     pub fn min_rating(&self) -> RatingScalar {
