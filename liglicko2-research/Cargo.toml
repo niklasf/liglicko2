@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 chrono = "0.4.38"
 liglicko2 = { path = ".." }
+thiserror = "1.0.65"
