@@ -209,7 +209,9 @@ impl RatingSystem {
         Rating {
             rating: self.default_rating.clamp(self.min_rating, self.max_rating),
             deviation: self.max_deviation,
-            volatility: self.default_volatility.clamp(self.min_volatility, self.max_volatility),
+            volatility: self
+                .default_volatility
+                .clamp(self.min_volatility, self.max_volatility),
             at: Instant::default(),
         }
     }
@@ -308,7 +310,8 @@ impl RatingSystem {
         }
 
         // Step 5.5
-        let sigma_prime = Volatility(f64::exp(big_a / 2.0)).clamp(self.min_volatility, self.max_volatility);
+        let sigma_prime =
+            Volatility(f64::exp(big_a / 2.0)).clamp(self.min_volatility, self.max_volatility);
 
         // Step 6
         let phi_star = new_deviation(
@@ -318,12 +321,10 @@ impl RatingSystem {
         );
 
         // Step 7
-        let phi_prime =
-            InternalRatingDifference(1.0 / f64::sqrt(1.0 / phi_star.sq() + 1.0 / v))
-                .clamp(self.min_deviation.internal(), self.max_deviation.internal());
-        let mu_prime_diff = InternalRatingDifference(
-            phi_prime.sq() * their_g * (score - expected).value(),
-        );
+        let phi_prime = InternalRatingDifference(1.0 / f64::sqrt(1.0 / phi_star.sq() + 1.0 / v))
+            .clamp(self.min_deviation.internal(), self.max_deviation.internal());
+        let mu_prime_diff =
+            InternalRatingDifference(phi_prime.sq() * their_g * Score::value(score - expected));
 
         // Step 8
         Rating {
@@ -358,4 +359,4 @@ fn new_deviation(
 
 const CONVERGENCE_TOLERANCE: f64 = 0.000001;
 
-const MAX_ITERATIONS: u32 = 10000;
+const MAX_ITERATIONS: u32 = 1000;
