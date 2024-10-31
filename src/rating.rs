@@ -155,6 +155,18 @@ impl Neg for RatingDifference {
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
 pub struct Volatility(pub f64);
 
+impl Volatility {
+    pub fn clamp(self, Volatility(min): Volatility, Volatility(max): Volatility) -> Volatility {
+        Volatility(f64::from(self).clamp(min, max))
+    }
+}
+
+impl From<Volatility> for f64 {
+    fn from(Volatility(volatility): Volatility) -> f64 {
+        volatility
+    }
+}
+
 /// A rating at a specific point in time.
 #[derive(Debug, Clone)]
 pub struct Rating {

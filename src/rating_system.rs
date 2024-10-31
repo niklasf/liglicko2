@@ -10,8 +10,10 @@ use std::f64::consts::PI;
 pub struct RatingSystemBuilder {
     min_rating: RatingScalar,
     max_rating: RatingScalar,
-
     default_rating: RatingScalar,
+
+    min_volatility: Volatility,
+    max_volatility: Volatility,
     default_volatility: Volatility,
 
     min_deviation: RatingDifference,
@@ -33,8 +35,10 @@ impl RatingSystemBuilder {
         RatingSystemBuilder {
             min_rating: RatingScalar(400.0),
             max_rating: RatingScalar(4000.0),
-
             default_rating: RatingScalar(1500.0),
+
+            min_volatility: Volatility(0.0),
+            max_volatility: Volatility(0.1),
             default_volatility: Volatility(0.09),
 
             min_deviation: RatingDifference(45.0),
@@ -63,6 +67,18 @@ impl RatingSystemBuilder {
         self
     }
 
+    pub fn min_volatility(&mut self, min_volatility: Volatility) -> &mut Self {
+        assert!(min_volatility >= Volatility(0.0));
+        self.min_volatility = min_volatility;
+        self
+    }
+
+    pub fn max_volatility(&mut self, max_volatility: Volatility) -> &mut Self {
+        assert!(max_volatility >= Volatility(0.0));
+        self.max_volatility = max_volatility;
+        self
+    }
+
     pub fn default_volatility(&mut self, default_volatility: Volatility) -> &mut Self {
         assert!(default_volatility >= Volatility(0.0));
         self.default_volatility = default_volatility;
@@ -76,7 +92,7 @@ impl RatingSystemBuilder {
     }
 
     pub fn max_deviation(&mut self, max_deviation: RatingDifference) -> &mut Self {
-        assert!(!f64::from(max_deviation).is_nan());
+        assert!(max_deviation >= RatingDifference(0.0));
         self.max_deviation = max_deviation;
         self
     }
@@ -95,12 +111,15 @@ impl RatingSystemBuilder {
     pub fn build(&self) -> RatingSystem {
         assert!(self.min_rating <= self.max_rating);
         assert!(self.min_deviation <= self.max_deviation);
+        assert!(self.min_volatility <= self.max_volatility);
 
         RatingSystem {
             min_rating: self.min_rating,
             max_rating: self.max_rating,
-
             default_rating: self.default_rating,
+
+            min_volatility: self.min_volatility,
+            max_volatility: self.max_volatility,
             default_volatility: self.default_volatility,
 
             min_deviation: self.min_deviation,
@@ -117,8 +136,10 @@ impl RatingSystemBuilder {
 pub struct RatingSystem {
     min_rating: RatingScalar,
     max_rating: RatingScalar,
-
     default_rating: RatingScalar,
+
+    min_volatility: Volatility,
+    max_volatility: Volatility,
     default_volatility: Volatility,
 
     min_deviation: RatingDifference,
@@ -156,6 +177,14 @@ impl RatingSystem {
         self.default_rating
     }
 
+    pub fn min_volatility(&self) -> Volatility {
+        self.min_volatility
+    }
+
+    pub fn max_volatility(&self) -> Volatility {
+        self.max_volatility
+    }
+
     pub fn default_volatility(&self) -> Volatility {
         self.default_volatility
     }
@@ -189,7 +218,7 @@ impl RatingSystem {
         RatingDifference::from(new_deviation(
             rating.deviation.internal(),
             rating.volatility,
-            now.elapsed_periods_since(rating.at)
+            now.elapsed_periods_since(rating.at),
         ))
         .clamp(self.min_deviation, self.max_deviation)
     }
@@ -197,20 +226,33 @@ impl RatingSystem {
     pub fn expected_score(&self, first: &Rating, second: &Rating, now: Instant) -> Score {
         expectation_value(
             (first.rating + self.first_advantage - second.rating).internal(),
-            g(self.preview_deviation(second, now).internal())
+            g(self.preview_deviation(second, now).internal()),
         )
     }
 
-    pub fn update_ratings(&self, first: &Rating, second: &Rating, score: Score, now: Instant) -> (Rating, Rating) {
+    pub fn update_ratings(
+        &self,
+        first: &Rating,
+        second: &Rating,
+        score: Score,
+        now: Instant,
+    ) -> (Rating, Rating) {
         (
             self.update_rating(first, second, score, now, self.first_advantage),
             self.update_rating(second, first, score.opposite(), now, -self.first_advantage),
         )
     }
 
-    fn update_rating(&self, us: &Rating, them: &Rating, score: Score, now: Instant, advantage: RatingDifference) -> Rating {
+    fn update_rating(
+        &self,
+        us: &Rating,
+        them: &Rating,
+        score: Score,
+        now: Instant,
+        advantage: RatingDifference,
+    ) -> Rating {
         // Step 3
-        let their_g = g(self.preview_deviation(them, now).internal());
+        let their_g = g(self.preview_deviation(them, now).internal()); // Novel
         let expected = expectation_value((us.rating + advantage - them.rating).internal(), their_g);
         let v = 1.0 / (their_g.powi(2) * f64::from(expected) * f64::from(expected.opposite()));
 
@@ -221,17 +263,27 @@ impl RatingSystem {
         let sigma_prime = us.volatility; // TODO
 
         // Step 6
-        let phi_star = new_deviation(us.deviation.internal(), sigma_prime, now.elapsed_periods_since(us.at));
+        let phi_star = new_deviation(
+            us.deviation.internal(),
+            sigma_prime,
+            now.elapsed_periods_since(us.at),
+        );
 
         // Step 7
-        let phi_prime = InternalRatingDifference(1.0 / f64::sqrt(1.0 / f64::from(phi_star).powi(2) + 1.0 / v));
-        let mu_prime_diff = InternalRatingDifference(f64::from(phi_prime).powi(2) * their_g * f64::from(score - expected));
+        let phi_prime =
+            InternalRatingDifference(1.0 / f64::sqrt(1.0 / f64::from(phi_star).powi(2) + 1.0 / v)).clamp(
+                self.min_deviation.internal(),
+                self.max_deviation.internal(),
+            );
+        let mu_prime_diff = InternalRatingDifference(
+            f64::from(phi_prime).powi(2) * their_g * f64::from(score - expected),
+        );
 
         // Step 8
         Rating {
-            rating: us.rating + mu_prime_diff.into(),
-            deviation: phi_prime.into(),
-            volatility: sigma_prime,
+            rating: (us.rating + mu_prime_diff.into()).clamp(self.min_rating, self.max_rating),
+            deviation: RatingDifference::from(phi_prime),
+            volatility: sigma_prime.clamp(self.min_volatility, self.max_volatility),
             at: now,
         }
     }
