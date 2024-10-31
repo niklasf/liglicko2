@@ -14,6 +14,7 @@
 //!   updated after each game.
 //! - Lichess keeps the time decay of rating deviations, but generalizes it
 //!   to work with fractional rating periods.
+//! - Lichess may consider an inherent advantage for the first player in a game.
 //!
 //! # Errors
 //!
