@@ -15,7 +15,9 @@ pub use score::Score;
 /// Lower is better.
 ///
 /// See <https://www.kaggle.com/c/ChessRatings2/overview/evaluation>.
-pub fn deviance(Score(expected): Score, Score(actual): Score) -> f64 {
-    let expected = expected.clamp(0.01, 0.99);
+pub fn deviance(expected: Score, actual: Score) -> f64 {
+    let expected = expected.value().clamp(0.01, 0.99);
+    let actual = actual.value();
+
     -(actual * expected.log10() + (1.0 - actual) * (1.0 - expected).log10())
 }

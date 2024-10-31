@@ -7,25 +7,30 @@ use crate::{internal_rating::InternalRatingDifference, Instant};
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
 pub struct RatingScalar(pub f64);
 
-impl RatingScalar {
-    pub fn clamp(
-        self,
-        RatingScalar(min): RatingScalar,
-        RatingScalar(max): RatingScalar,
-    ) -> RatingScalar {
-        RatingScalar(f64::from(self).clamp(min, max))
+impl From<RatingScalar> for f64 {
+    #[inline]
+    fn from(RatingScalar(rating): RatingScalar) -> f64 {
+        rating
     }
 }
 
-impl From<RatingScalar> for f64 {
-    fn from(RatingScalar(rating): RatingScalar) -> f64 {
-        rating
+impl From<f64> for RatingScalar {
+    #[inline]
+    fn from(rating: f64) -> RatingScalar {
+        RatingScalar(rating)
+    }
+}
+
+impl RatingScalar {
+    pub fn clamp(self, min: RatingScalar, max: RatingScalar) -> RatingScalar {
+        RatingScalar(self.0.clamp(min.0, max.0))
     }
 }
 
 impl Sub<RatingScalar> for RatingScalar {
     type Output = RatingDifference;
 
+    #[inline]
     fn sub(self, rhs: RatingScalar) -> RatingDifference {
         RatingDifference(self.0 - rhs.0)
     }
@@ -34,12 +39,14 @@ impl Sub<RatingScalar> for RatingScalar {
 impl Add<RatingDifference> for RatingScalar {
     type Output = RatingScalar;
 
+    #[inline]
     fn add(self, RatingDifference(difference): RatingDifference) -> RatingScalar {
         RatingScalar(self.0 + difference)
     }
 }
 
 impl AddAssign<RatingDifference> for RatingScalar {
+    #[inline]
     fn add_assign(&mut self, RatingDifference(difference): RatingDifference) {
         self.0 += difference;
     }
@@ -48,12 +55,14 @@ impl AddAssign<RatingDifference> for RatingScalar {
 impl Sub<RatingDifference> for RatingScalar {
     type Output = RatingScalar;
 
+    #[inline]
     fn sub(self, RatingDifference(difference): RatingDifference) -> RatingScalar {
         RatingScalar(self.0 - difference)
     }
 }
 
 impl SubAssign<RatingDifference> for RatingScalar {
+    #[inline]
     fn sub_assign(&mut self, RatingDifference(difference): RatingDifference) {
         self.0 -= difference;
     }
@@ -64,18 +73,22 @@ impl SubAssign<RatingDifference> for RatingScalar {
 pub struct RatingDifference(pub f64);
 
 impl From<RatingDifference> for f64 {
+    #[inline]
     fn from(RatingDifference(difference): RatingDifference) -> f64 {
         difference
     }
 }
 
+impl From<f64> for RatingDifference {
+    #[inline]
+    fn from(difference: f64) -> RatingDifference {
+        RatingDifference(difference)
+    }
+}
+
 impl RatingDifference {
-    pub fn clamp(
-        self,
-        RatingDifference(min): RatingDifference,
-        RatingDifference(max): RatingDifference,
-    ) -> RatingDifference {
-        RatingDifference(f64::from(self).clamp(min, max))
+    pub fn clamp(self, min: RatingDifference, max: RatingDifference) -> RatingDifference {
+        RatingDifference(self.0.clamp(min.0, max.0))
     }
 
     pub fn abs(self) -> RatingDifference {
@@ -90,12 +103,14 @@ impl RatingDifference {
 impl Add<RatingDifference> for RatingDifference {
     type Output = RatingDifference;
 
+    #[inline]
     fn add(self, RatingDifference(difference): RatingDifference) -> RatingDifference {
         RatingDifference(self.0 + difference)
     }
 }
 
 impl AddAssign<RatingDifference> for RatingDifference {
+    #[inline]
     fn add_assign(&mut self, RatingDifference(difference): RatingDifference) {
         self.0 += difference;
     }
@@ -104,12 +119,14 @@ impl AddAssign<RatingDifference> for RatingDifference {
 impl Sub<RatingDifference> for RatingDifference {
     type Output = RatingDifference;
 
+    #[inline]
     fn sub(self, RatingDifference(difference): RatingDifference) -> RatingDifference {
         RatingDifference(self.0 - difference)
     }
 }
 
 impl SubAssign<RatingDifference> for RatingDifference {
+    #[inline]
     fn sub_assign(&mut self, RatingDifference(difference): RatingDifference) {
         self.0 -= difference;
     }
@@ -118,6 +135,7 @@ impl SubAssign<RatingDifference> for RatingDifference {
 impl Mul<f64> for RatingDifference {
     type Output = RatingDifference;
 
+    #[inline]
     fn mul(self, scalar: f64) -> RatingDifference {
         RatingDifference(self.0 * scalar)
     }
@@ -126,12 +144,14 @@ impl Mul<f64> for RatingDifference {
 impl Mul<RatingDifference> for f64 {
     type Output = RatingDifference;
 
+    #[inline]
     fn mul(self, RatingDifference(difference): RatingDifference) -> RatingDifference {
         RatingDifference(self * difference)
     }
 }
 
 impl MulAssign<f64> for RatingDifference {
+    #[inline]
     fn mul_assign(&mut self, scalar: f64) {
         self.0 *= scalar;
     }
@@ -140,12 +160,14 @@ impl MulAssign<f64> for RatingDifference {
 impl Div<f64> for RatingDifference {
     type Output = RatingDifference;
 
+    #[inline]
     fn div(self, scalar: f64) -> RatingDifference {
         RatingDifference(self.0 / scalar)
     }
 }
 
 impl DivAssign<f64> for RatingDifference {
+    #[inline]
     fn div_assign(&mut self, scalar: f64) {
         self.0 /= scalar;
     }
@@ -154,6 +176,7 @@ impl DivAssign<f64> for RatingDifference {
 impl Neg for RatingDifference {
     type Output = RatingDifference;
 
+    #[inline]
     fn neg(self) -> RatingDifference {
         RatingDifference(-self.0)
     }
@@ -164,18 +187,27 @@ impl Neg for RatingDifference {
 pub struct Volatility(pub f64);
 
 impl Volatility {
-    pub fn clamp(self, Volatility(min): Volatility, Volatility(max): Volatility) -> Volatility {
-        Volatility(f64::from(self).clamp(min, max))
+    pub fn clamp(self, min: Volatility, max: Volatility) -> Volatility {
+        Volatility(self.0.clamp(min.0, max.0))
     }
 
+    #[inline]
     pub(crate) fn sq(self) -> f64 {
         self.0 * self.0
     }
 }
 
 impl From<Volatility> for f64 {
+    #[inline]
     fn from(Volatility(volatility): Volatility) -> f64 {
         volatility
+    }
+}
+
+impl From<f64> for Volatility {
+    #[inline]
+    fn from(volatility: f64) -> Volatility {
+        Volatility(volatility)
     }
 }
 

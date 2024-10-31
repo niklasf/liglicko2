@@ -41,12 +41,14 @@ impl Score {
 impl ops::Add<Score> for Score {
     type Output = Score;
 
+    #[inline]
     fn add(self, rhs: Score) -> Score {
         Score(self.0 + rhs.0)
     }
 }
 
 impl ops::AddAssign<Score> for Score {
+    #[inline]
     fn add_assign(&mut self, rhs: Score) {
         *self = *self + rhs;
     }
@@ -55,12 +57,14 @@ impl ops::AddAssign<Score> for Score {
 impl ops::Sub<Score> for Score {
     type Output = Score;
 
+    #[inline]
     fn sub(self, rhs: Score) -> Score {
         Score(self.0 - rhs.0)
     }
 }
 
 impl ops::SubAssign<Score> for Score {
+    #[inline]
     fn sub_assign(&mut self, rhs: Score) {
         *self = *self - rhs;
     }
