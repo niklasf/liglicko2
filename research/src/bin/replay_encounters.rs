@@ -1,3 +1,4 @@
+use clap::Parser as _;
 use std::{error::Error as StdError, fmt, fs::File, io, io::Write, str::FromStr};
 
 use chrono::{DateTime, NaiveDateTime};
@@ -385,18 +386,38 @@ fn write_report<W: Write>(
     Ok(())
 }
 
+#[derive(clap::Parser)]
+struct Opt {
+    #[clap(long, value_delimiter = ',', num_args = 1.., default_value = "45")]
+    min_deviation: Vec<f64>,
+    #[clap(long, value_delimiter = ',', num_args = 1.., default_value = "500")]
+    max_deviation: Vec<f64>,
+    #[clap(long, value_delimiter = ',', num_args = 1.., default_value = "0.09")]
+    default_volatility: Vec<f64>,
+    #[clap(long, value_delimiter = ',', num_args = 1.., default_value = "0.75")]
+    tau: Vec<f64>,
+    #[clap(long, value_delimiter = ',', num_args = 1.., default_value = "0")]
+    first_advantage: Vec<f64>,
+    #[clap(long, value_delimiter = ',', num_args = 1.., default_value = "0,1")]
+    preview_opponent_deviation: Vec<u8>,
+    #[clap(long, value_delimiter = ',', num_args = 1.., default_value = "0.21436")]
+    rating_periods_per_day: Vec<f64>,
+}
+
 fn main() -> Result<(), Box<dyn StdError>> {
+    let opt = Opt::parse();
+
     let process_uuid = Uuid::now_v7();
 
     let mut experiments = Vec::new();
 
-    for min_deviation in [40.0, 45.0, 50.0] {
-        for max_deviation in [450.0, 500.0, 550.0] {
-            for default_volatility in [0.08, 0.09, 0.1] {
-                for tau in [0.6, 0.75, 0.9] {
-                    for first_advantage in [0.0, 8.0, 11.0] {
-                        for preview_opponent_deviation in [true, false] {
-                            for rating_periods_per_day in [0.2, 0.21436, 0.23] {
+    for &min_deviation in &opt.min_deviation {
+        for &max_deviation in &opt.max_deviation {
+            for &default_volatility in &opt.default_volatility {
+                for &tau in &opt.tau {
+                    for &first_advantage in &opt.first_advantage {
+                        for &preview_opponent_deviation in &opt.preview_opponent_deviation {
+                            for &rating_periods_per_day in &opt.rating_periods_per_day {
                                 experiments.push(Experiment {
                                     rating_system: RatingSystem::builder()
                                         .min_deviation(RatingDifference(min_deviation))
@@ -404,7 +425,7 @@ fn main() -> Result<(), Box<dyn StdError>> {
                                         .default_volatility(Volatility(default_volatility))
                                         .tau(tau)
                                         .first_advantage(RatingDifference(first_advantage))
-                                        .preview_opponent_deviation(preview_opponent_deviation)
+                                        .preview_opponent_deviation(preview_opponent_deviation != 0)
                                         .build(),
                                     rating_periods_per_day,
                                     ..Default::default()
