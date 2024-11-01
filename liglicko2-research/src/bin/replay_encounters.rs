@@ -73,6 +73,40 @@ enum Speed {
     Correspondence,
 }
 
+#[derive(Debug, Clone, Default)]
+struct BySpeed<T> {
+    ultra_bullet: T,
+    bullet: T,
+    blitz: T,
+    rapid: T,
+    classical: T,
+    correspondence: T,
+}
+
+impl<T> BySpeed<T> {
+    fn get(&self, speed: Speed) -> &T {
+        match speed {
+            Speed::UltraBullet => &self.ultra_bullet,
+            Speed::Bullet => &self.bullet,
+            Speed::Blitz => &self.blitz,
+            Speed::Rapid => &self.rapid,
+            Speed::Classical => &self.classical,
+            Speed::Correspondence => &self.correspondence,
+        }
+    }
+
+    fn get_mut(&mut self, speed: Speed) -> &mut T {
+        match speed {
+            Speed::UltraBullet => &mut self.ultra_bullet,
+            Speed::Bullet => &mut self.bullet,
+            Speed::Blitz => &mut self.blitz,
+            Speed::Rapid => &mut self.rapid,
+            Speed::Classical => &mut self.classical,
+            Speed::Correspondence => &mut self.correspondence,
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum GameResult {
     Unknown,
@@ -139,7 +173,7 @@ struct Encounter {
 struct Experiment {
     rating_system: RatingSystem,
     rating_periods_per_day: f64,
-    leaderboard: FxHashMap<(Box<str>, Speed), Rating>,
+    leaderboard: BySpeed<FxHashMap<Box<str>, Rating>>,
     total_deviance: KahanBabuskaNeumaier<f64>,
     total_games: u64,
     errors: u64,
@@ -159,13 +193,15 @@ impl Experiment {
 
         let white = self
             .leaderboard
-            .get(&(encounter.white.clone().into(), speed))
+            .get(speed)
+            .get(encounter.white.as_str())
             .cloned()
             .unwrap_or_else(|| self.rating_system.new_rating());
 
         let black = self
             .leaderboard
-            .get(&(encounter.black.clone().into(), speed))
+            .get(speed)
+            .get(encounter.black.as_str())
             .cloned()
             .unwrap_or_else(|| self.rating_system.new_rating());
 
@@ -187,9 +223,11 @@ impl Experiment {
             });
 
         self.leaderboard
-            .insert((encounter.white.clone().into(), speed), white);
+            .get_mut(speed)
+            .insert(encounter.white.clone().into(), white);
         self.leaderboard
-            .insert((encounter.black.clone().into(), speed), black);
+            .get_mut(speed)
+            .insert(encounter.black.clone().into(), black);
     }
 
     fn avg_deviance(&self) -> f64 {
@@ -236,7 +274,7 @@ fn main() -> Result<(), Box<dyn StdError>> {
     let mut total_encounters: u64 = 0;
     for encounter in reader.deserialize() {
         total_encounters += 1;
-        if total_encounters % 10_000_000 == 0 {
+        if total_encounters % 10_000 == 0 {
             eprintln!("# Processing encounter {} ...", total_encounters);
         }
 
