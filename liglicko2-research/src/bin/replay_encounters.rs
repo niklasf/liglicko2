@@ -435,22 +435,20 @@ fn main() -> Result<(), Box<dyn StdError>> {
         batch.clear();
 
         experiments.sort_by_key(Experiment::sort_key);
-
         write_report(
             File::create("report.csv")?,
             players,
             &mut experiments,
             last_date_time,
         )?;
-        write_report(io::stdout(), players, &mut experiments, last_date_time)?;
-
-        Ok(())
+        write_report(io::stdout(), players, &mut experiments, last_date_time)
     };
 
     let mut last_date_time = UtcDateTime::default();
 
     for encounter in reader.deserialize() {
         let encounter: RawEncounter = encounter?;
+        last_date_time = encounter.utc_date_time;
 
         batch.push(Encounter {
             white: players.get_or_insert(encounter.white),
@@ -462,8 +460,6 @@ fn main() -> Result<(), Box<dyn StdError>> {
             speed: encounter.time_control.speed(),
             utc_date_time: encounter.utc_date_time,
         });
-
-        last_date_time = encounter.utc_date_time;
 
         if batch.len() >= 100_000 {
             process_batch(&mut batch, &players, last_date_time)?;
