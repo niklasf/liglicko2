@@ -430,18 +430,20 @@ fn main() -> Result<(), Box<dyn StdError>> {
      -> io::Result<()> {
         experiments
             .par_iter_mut()
-            .for_each(|experiment| experiment.batch_encounters(&batch));
+            .for_each(|experiment| experiment.batch_encounters(batch));
 
         batch.clear();
 
         experiments.sort_by_key(Experiment::sort_key);
+
         write_report(
             File::create("report.csv")?,
-            &players,
+            players,
             &mut experiments,
             last_date_time,
         )?;
-        write_report(io::stdout(), &players, &mut experiments, last_date_time)?;
+        write_report(io::stdout(), players, &mut experiments, last_date_time)?;
+
         Ok(())
     };
 
