@@ -187,6 +187,10 @@ impl PlayerIds {
         let next_id = PlayerId(self.inner.len());
         *self.inner.entry(name.into_boxed_str()).or_insert(next_id)
     }
+
+    fn len(&self) -> usize {
+        self.inner.len()
+    }
 }
 
 struct ByPlayerId<T> {
@@ -335,6 +339,7 @@ fn main() -> Result<(), Box<dyn StdError>> {
 
     experiments.sort_by_key(|experiment| OrderedFloat(-experiment.total_deviance.total()));
 
+    println!("# Distinct players: {}", players.len());
     println!("# Total encounters: {}", total_encounters);
     println!("min_deviation,max_deviation,default_volatility,tau,first_advantage,rating_periods_per_day,preview_opponent_deviation,errors,avg_deviance");
     for experiment in experiments {
