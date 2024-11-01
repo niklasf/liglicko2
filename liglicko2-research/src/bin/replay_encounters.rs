@@ -1,6 +1,5 @@
-use hashbrown::HashMap;
 use ordered_float::OrderedFloat;
-use rustc_hash::FxBuildHasher;
+use rustc_hash::FxHashMap;
 use std::{error::Error as StdError, io, str::FromStr};
 
 use chrono::{DateTime, NaiveDateTime, Utc};
@@ -176,7 +175,7 @@ struct Encounter {
 struct Experiment {
     rating_system: RatingSystem,
     rating_periods_per_day: f64,
-    leaderboard: BySpeed<HashMap<PlayerId, Rating, FxBuildHasher>>,
+    leaderboard: BySpeed<FxHashMap<PlayerId, Rating>>,
     total_deviance: KahanBabuskaNeumaier<f64>,
     total_games: u64,
     errors: u64,
@@ -186,11 +185,11 @@ struct Experiment {
 struct PlayerId(usize);
 
 #[derive(Default)]
-struct PlayerMap {
-    inner: HashMap<Box<str>, PlayerId, FxBuildHasher>,
+struct PlayerIds {
+    inner: FxHashMap<Box<str>, PlayerId>,
 }
 
-impl PlayerMap {
+impl PlayerIds {
     fn get_or_insert(&mut self, name: String) -> PlayerId {
         let next_id = PlayerId(self.inner.len());
         *self.inner.entry(name.into_boxed_str()).or_insert(next_id)
@@ -278,7 +277,7 @@ fn main() -> Result<(), Box<dyn StdError>> {
         .has_headers(false)
         .from_reader(io::stdin().lock());
 
-    let mut players = PlayerMap::default();
+    let mut players = PlayerIds::default();
 
     let mut total_encounters: u64 = 0;
     for encounter in reader.deserialize() {
