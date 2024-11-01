@@ -84,17 +84,6 @@ struct BySpeed<T> {
 }
 
 impl<T> BySpeed<T> {
-    fn get(&self, speed: Speed) -> &T {
-        match speed {
-            Speed::UltraBullet => &self.ultra_bullet,
-            Speed::Bullet => &self.bullet,
-            Speed::Blitz => &self.blitz,
-            Speed::Rapid => &self.rapid,
-            Speed::Classical => &self.classical,
-            Speed::Correspondence => &self.correspondence,
-        }
-    }
-
     fn get_mut(&mut self, speed: Speed) -> &mut T {
         match speed {
             Speed::UltraBullet => &mut self.ultra_bullet,
@@ -188,19 +177,15 @@ impl Experiment {
         let Some(actual_score) = encounter.result.white_score() else {
             return;
         };
-        let speed = encounter.time_control.speed();
         let now = self.to_instant(&encounter.date_time);
+        let leaderboard = self.leaderboard.get_mut(encounter.time_control.speed());
 
-        let white = self
-            .leaderboard
-            .get(speed)
+        let white = leaderboard
             .get(encounter.white.as_str())
             .cloned()
             .unwrap_or_else(|| self.rating_system.new_rating());
 
-        let black = self
-            .leaderboard
-            .get(speed)
+        let black = leaderboard
             .get(encounter.black.as_str())
             .cloned()
             .unwrap_or_else(|| self.rating_system.new_rating());
@@ -222,12 +207,8 @@ impl Experiment {
                 )
             });
 
-        self.leaderboard
-            .get_mut(speed)
-            .insert(encounter.white.clone().into(), white);
-        self.leaderboard
-            .get_mut(speed)
-            .insert(encounter.black.clone().into(), black);
+        leaderboard.insert(encounter.white.clone().into(), white);
+        leaderboard.insert(encounter.black.clone().into(), black);
     }
 
     fn avg_deviance(&self) -> f64 {
