@@ -1,6 +1,8 @@
 use ordered_float::OrderedFloat;
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
+use std::fs::File;
+use std::io::Write;
 use std::{error::Error as StdError, io, str::FromStr};
 
 use chrono::NaiveDateTime;
@@ -231,6 +233,10 @@ struct Experiment {
 }
 
 impl Experiment {
+    fn sort_key(&self) -> impl Ord {
+        OrderedFloat(-self.total_deviance.total())
+    }
+
     fn to_instant(&self, UtcDateTime(timestamp): UtcDateTime) -> Instant {
         Instant(timestamp as f64 / (60.0 * 60.0 * 24.0) * self.rating_periods_per_day)
     }
@@ -281,6 +287,46 @@ impl Experiment {
     }
 }
 
+fn write_report<W: Write>(
+    mut writer: W,
+    players: &PlayerIds,
+    experiments: &mut [Experiment],
+) -> io::Result<()> {
+    let mut num_encounters = 0;
+    let mut total_errors = 0;
+
+    writeln!(
+        writer,
+        "min_deviation,max_deviation,default_volatility,tau,first_advantage,preview_opponent_deviation,rating_periods_per_day,avg_deviance"
+    )?;
+
+    for experiment in experiments {
+        writeln!(
+            writer,
+            "{},{},{},{},{},{},{},{}",
+            f64::from(experiment.rating_system.min_deviation()),
+            f64::from(experiment.rating_system.max_deviation()),
+            f64::from(experiment.rating_system.default_volatility()),
+            experiment.rating_system.tau(),
+            f64::from(experiment.rating_system.first_advantage()),
+            experiment.rating_system.preview_opponent_deviation(),
+            experiment.rating_periods_per_day,
+            experiment.avg_deviance()
+        )?;
+
+        num_encounters = experiment.total_games; // Not summing
+        total_errors += experiment.errors;
+    }
+
+    writeln!(writer, "# ---")?;
+    writeln!(writer, "# Distinct players: {}", players.len())?;
+    writeln!(writer, "# Processed encounters: {}", num_encounters)?;
+    writeln!(writer, "# Total errors: {}", total_errors)?;
+    writeln!(writer, "# ---")?;
+
+    Ok(())
+}
+
 fn main() -> Result<(), Box<dyn StdError>> {
     let mut experiments = Vec::new();
 
@@ -311,7 +357,8 @@ fn main() -> Result<(), Box<dyn StdError>> {
         }
     }
 
-    println!("# Experiments: {}", experiments.len());
+    println!("# Parallel experiments: {}", experiments.len());
+    println!("# ---");
 
     let mut reader = csv::ReaderBuilder::new()
         .has_headers(false)
@@ -319,14 +366,22 @@ fn main() -> Result<(), Box<dyn StdError>> {
 
     let mut players = PlayerIds::default();
 
-    let mut total_encounters: u64 = 0;
     let mut batch = Vec::new();
-    for encounter in reader.deserialize() {
-        total_encounters += 1;
-        if total_encounters % 10_000 == 0 {
-            eprintln!("# Processing encounter {} ...", total_encounters);
-        }
 
+    let mut process_batch = |batch: &mut Vec<Encounter>, players: &PlayerIds| -> io::Result<()> {
+        experiments
+            .par_iter_mut()
+            .for_each(|experiment| experiment.batch_encounters(&batch));
+
+        batch.clear();
+
+        experiments.sort_by_key(Experiment::sort_key);
+        write_report(File::create("report.csv")?, &players, &mut experiments)?;
+        write_report(io::stdout(), &players, &mut experiments)?;
+        Ok(())
+    };
+
+    for encounter in reader.deserialize() {
         let encounter: RawEncounter = encounter?;
 
         batch.push(Encounter {
@@ -340,37 +395,12 @@ fn main() -> Result<(), Box<dyn StdError>> {
             date_time: encounter.date_time,
         });
 
-        if batch.len() > 1000 {
-            experiments
-                .par_iter_mut()
-                .for_each(|experiment| experiment.batch_encounters(&batch));
-            batch.clear();
+        if batch.len() > 100_000 {
+            process_batch(&mut batch, &players)?;
         }
     }
 
-    experiments
-        .par_iter_mut()
-        .for_each(|experiment| experiment.batch_encounters(&batch));
-
-    experiments.sort_by_key(|experiment| OrderedFloat(-experiment.total_deviance.total()));
-
-    println!("# Distinct players: {}", players.len());
-    println!("# Total encounters: {}", total_encounters);
-    println!("min_deviation,max_deviation,default_volatility,tau,first_advantage,rating_periods_per_day,preview_opponent_deviation,errors,avg_deviance");
-    for experiment in experiments {
-        println!(
-            "{},{},{},{},{},{},{},{},{}",
-            f64::from(experiment.rating_system.min_deviation()),
-            f64::from(experiment.rating_system.max_deviation()),
-            f64::from(experiment.rating_system.default_volatility()),
-            experiment.rating_system.tau(),
-            f64::from(experiment.rating_system.first_advantage()),
-            experiment.rating_periods_per_day,
-            experiment.rating_system.preview_opponent_deviation(),
-            experiment.errors,
-            experiment.avg_deviance()
-        );
-    }
+    process_batch(&mut batch, &players)?;
 
     Ok(())
 }
