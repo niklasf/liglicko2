@@ -314,7 +314,24 @@ impl Experiment {
         self.total_deviance.total() / self.total_games as f64
     }
 
-    fn estimate_median_rating(&self, speed: Speed) -> Option<f64> {
+    fn estimate_avg_rating(&self, speed: Speed) -> f64 {
+        let mut total_rating = KahanBabuskaNeumaier::default();
+        let mut num_ratings: u64 = 0;
+
+        let table = self.leaderboard.get(speed).table();
+        let mut i = 0;
+        while i < table.len() {
+            if let Some(rating) = &table[i] {
+                total_rating += f64::from(rating.rating);
+                num_ratings += 1;
+            }
+            i += 1;
+        }
+
+        total_rating.total() / num_ratings as f64
+    }
+
+    fn estimate_percentiles(&self, speed: Speed) -> (f64, f64, f64, f64, f64) {
         let mut samples = Vec::new();
 
         let table = self.leaderboard.get(speed).table();
@@ -323,12 +340,20 @@ impl Experiment {
             if let Some(rating) = &table[i] {
                 samples.push(OrderedFloat(f64::from(rating.rating)));
             }
-            i += 4139;
+            i += 1;
         }
 
         samples.sort_unstable();
 
-        samples.get(samples.len() / 2).copied().map(f64::from)
+        let p = |x: usize| {
+            samples
+                .get(samples.len() * x / 100)
+                .copied()
+                .map(f64::from)
+                .unwrap_or(f64::NAN)
+        };
+
+        (p(1), p(10), p(50), p(90), p(99))
     }
 }
 
@@ -365,6 +390,9 @@ fn write_report<W: Write>(
     }
 
     writeln!(writer, "# ---")?;
+
+    let best_experiment = experiments.last().expect("at least one experiment");
+
     for (speed, name) in [
         (Speed::Blitz, "thibault"),
         (Speed::Blitz, "german11"),
@@ -375,14 +403,10 @@ fn write_report<W: Write>(
         (Speed::Blitz, "somethingpretentious"),
         (Speed::Classical, "igormezentsev"),
     ] {
-        if let Some(rating) = players.get(name).and_then(|player_id| {
-            experiments
-                .last()
-                .expect("at least one experiment")
-                .leaderboard
-                .get(speed)
-                .get(player_id)
-        }) {
+        if let Some(rating) = players
+            .get(name)
+            .and_then(|player_id| best_experiment.leaderboard.get(speed).get(player_id))
+        {
             writeln!(
                 writer,
                 "# Sample {:?} rating of {}: {} (rd: {}, vola: {})",
@@ -395,13 +419,11 @@ fn write_report<W: Write>(
         }
     }
     writeln!(writer, "# ---")?;
+    let (p1, p10, median, p90, p99) = best_experiment.estimate_percentiles(Speed::Blitz);
+    let avg = best_experiment.estimate_avg_rating(Speed::Blitz);
     writeln!(
         writer,
-        "# Estimated Blitz median: {:?}",
-        experiments
-            .last()
-            .expect("at least one experiment")
-            .estimate_median_rating(Speed::Blitz)
+        "# Estimated Blitz rating distribution: p1 {p1:.1}, p10 {p10:.1}, median {median:.1}, p90 {p90:.1}, p99 {p99:.1}, avg {avg:.1}",
     )?;
     writeln!(writer, "# ---")?;
     writeln!(writer, "# Distinct players: {}", players.len())?;
