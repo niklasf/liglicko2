@@ -153,7 +153,7 @@ impl FromStr for UtcDateTime {
 
 #[serde_as]
 #[derive(Deserialize)]
-struct Encounter {
+struct RawEncounter {
     white: String,
     black: String,
     #[serde_as(as = "DisplayFromStr")]
@@ -164,47 +164,67 @@ struct Encounter {
     time_control: TimeControl,
 }
 
+struct Encounter {
+    white: PlayerId,
+    black: PlayerId,
+    white_score: Score,
+    timestamp: i64,
+    speed: Speed,
+}
+
 #[derive(Default)]
 struct Experiment {
     rating_system: RatingSystem,
     rating_periods_per_day: f64,
-    leaderboard: BySpeed<HashMap<Box<str>, Rating, FxBuildHasher>>,
+    leaderboard: BySpeed<HashMap<PlayerId, Rating, FxBuildHasher>>,
     total_deviance: KahanBabuskaNeumaier<f64>,
     total_games: u64,
     errors: u64,
 }
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+struct PlayerId(usize);
+
+#[derive(Default)]
+struct PlayerMap {
+    inner: HashMap<Box<str>, PlayerId, FxBuildHasher>,
+}
+
+impl PlayerMap {
+    fn get_or_insert(&mut self, name: String) -> PlayerId {
+        let next_id = PlayerId(self.inner.len());
+        *self.inner.entry(name.into_boxed_str()).or_insert(next_id)
+    }
+}
+
 impl Experiment {
-    fn to_instant(&self, date_time: &UtcDateTime) -> Instant {
-        Instant(date_time.0.timestamp() as f64 / (60.0 * 60.0 * 24.0) * self.rating_periods_per_day)
+    fn to_instant(&self, timestamp: i64) -> Instant {
+        Instant(timestamp as f64 / (60.0 * 60.0 * 24.0) * self.rating_periods_per_day)
     }
 
     fn encounter(&mut self, encounter: &Encounter) {
-        let Some(actual_score) = encounter.result.white_score() else {
-            return;
-        };
-        let now = self.to_instant(&encounter.date_time);
-        let leaderboard = self.leaderboard.get_mut(encounter.time_control.speed());
+        let now = self.to_instant(encounter.timestamp);
+        let leaderboard = self.leaderboard.get_mut(encounter.speed);
 
         let white = leaderboard
-            .get(encounter.white.as_str())
+            .get(&encounter.white)
             .cloned()
             .unwrap_or_else(|| self.rating_system.new_rating());
 
         let black = leaderboard
-            .get(encounter.black.as_str())
+            .get(&encounter.black)
             .cloned()
             .unwrap_or_else(|| self.rating_system.new_rating());
 
         self.total_deviance += deviance(
             self.rating_system.expected_score(&white, &black, now),
-            actual_score,
+            encounter.white_score,
         );
         self.total_games += 1;
 
         let (white, black) = self
             .rating_system
-            .update_ratings(&white, &black, actual_score, now)
+            .update_ratings(&white, &black, encounter.white_score, now)
             .unwrap_or_else(|_| {
                 self.errors += 1;
                 (
@@ -213,12 +233,8 @@ impl Experiment {
                 )
             });
 
-        leaderboard
-            .entry_ref(encounter.white.as_str())
-            .insert(white);
-        leaderboard
-            .entry_ref(encounter.black.as_str())
-            .insert(black);
+        leaderboard.insert(encounter.white, white);
+        leaderboard.insert(encounter.black, black);
     }
 
     fn avg_deviance(&self) -> f64 {
@@ -262,6 +278,8 @@ fn main() -> Result<(), Box<dyn StdError>> {
         .has_headers(false)
         .from_reader(io::stdin().lock());
 
+    let mut players = PlayerMap::default();
+
     let mut total_encounters: u64 = 0;
     for encounter in reader.deserialize() {
         total_encounters += 1;
@@ -269,7 +287,19 @@ fn main() -> Result<(), Box<dyn StdError>> {
             eprintln!("# Processing encounter {} ...", total_encounters);
         }
 
-        let encounter: Encounter = encounter?;
+        let encounter: RawEncounter = encounter?;
+
+        let encounter = Encounter {
+            white: players.get_or_insert(encounter.white),
+            black: players.get_or_insert(encounter.black),
+            white_score: match encounter.result.white_score() {
+                Some(score) => score,
+                None => continue,
+            },
+            speed: encounter.time_control.speed(),
+            timestamp: encounter.date_time.0.timestamp(),
+        };
+
         for experiment in &mut experiments {
             experiment.encounter(&encounter);
         }
