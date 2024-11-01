@@ -3,7 +3,6 @@ use std::{error::Error as StdError, fmt, fs::File, io, io::Write, str::FromStr};
 use chrono::{DateTime, NaiveDateTime};
 use compensated_summation::KahanBabuskaNeumaier;
 use liglicko2::{deviance, Instant, Rating, RatingDifference, RatingSystem, Score, Volatility};
-use mimalloc::MiMalloc;
 use ordered_float::OrderedFloat;
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
@@ -12,7 +11,7 @@ use serde_with::{serde_as, DisplayFromStr};
 use thiserror::Error;
 
 #[global_allocator]
-static GLOBAL: MiMalloc = MiMalloc;
+static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
 #[derive(Debug)]
 enum TimeControl {
