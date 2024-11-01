@@ -138,7 +138,7 @@ struct Encounter {
 struct Experiment {
     rating_system: RatingSystem,
     rating_periods_per_day: f64,
-    leaderboard: FxHashMap<(String, Speed), Rating>,
+    leaderboard: FxHashMap<(Box<str>, Speed), Rating>,
     total_deviance: KahanBabuskaNeumaier<f64>,
     total_games: u64,
     errors: u64,
@@ -158,13 +158,13 @@ impl Experiment {
 
         let white = self
             .leaderboard
-            .get(&(encounter.white.clone(), speed))
+            .get(&(encounter.white.clone().into(), speed))
             .cloned()
             .unwrap_or_else(|| self.rating_system.new_rating());
 
         let black = self
             .leaderboard
-            .get(&(encounter.black.clone(), speed))
+            .get(&(encounter.black.clone().into(), speed))
             .cloned()
             .unwrap_or_else(|| self.rating_system.new_rating());
 
@@ -186,9 +186,9 @@ impl Experiment {
             });
 
         self.leaderboard
-            .insert((encounter.white.clone(), speed), white);
+            .insert((encounter.white.clone().into(), speed), white);
         self.leaderboard
-            .insert((encounter.black.clone(), speed), black);
+            .insert((encounter.black.clone().into(), speed), black);
     }
 
     fn avg_deviance(&self) -> f64 {
@@ -197,30 +197,42 @@ impl Experiment {
 }
 
 fn main() -> Result<(), Box<dyn StdError>> {
-    let mut experiments = [Experiment {
-        rating_system: RatingSystem::builder()
-            .preview_opponent_deviation(true)
-            .first_advantage(RatingDifference(8.0))
-            .build(),
-        rating_periods_per_day: 0.21436,
-        ..Default::default()
-    }];
+    let mut experiments = Vec::new();
+
+    for preview_opponent_deviation in [true, false] {
+        experiments.push(Experiment {
+            rating_system: RatingSystem::builder()
+                .preview_opponent_deviation(preview_opponent_deviation)
+                .build(),
+            rating_periods_per_day: 0.21436,
+            ..Default::default()
+        });
+    }
+
+    println!("# Experiments: {}", experiments.len());
 
     let mut reader = csv::ReaderBuilder::new()
         .has_headers(false)
         .from_reader(io::stdin().lock());
 
+    let mut total_encounters: u64 = 0;
     for encounter in reader.deserialize() {
+        total_encounters += 1;
+        if total_encounters % 10_000_000 == 0 {
+            eprintln!("# Processing encounter {} ...", total_encounters);
+        }
+
         let encounter: Encounter = encounter?;
         for experiment in &mut experiments {
             experiment.encounter(&encounter);
         }
     }
 
-    println!("min_deviation,max_deviation,default_volatility,tau,first_advantage,rating_periods_per_day,preview_opponent_deviation,total_games,errors,avg_deviance");
+    println!("# Total encounters: {}", total_encounters);
+    println!("min_deviation,max_deviation,default_volatility,tau,first_advantage,rating_periods_per_day,preview_opponent_deviation,errors,avg_deviance");
     for experiment in experiments {
         println!(
-            "{},{},{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{}",
             f64::from(experiment.rating_system.min_deviation()),
             f64::from(experiment.rating_system.max_deviation()),
             f64::from(experiment.rating_system.default_volatility()),
@@ -228,7 +240,6 @@ fn main() -> Result<(), Box<dyn StdError>> {
             f64::from(experiment.rating_system.first_advantage()),
             experiment.rating_periods_per_day,
             experiment.rating_system.preview_opponent_deviation(),
-            experiment.total_games,
             experiment.errors,
             experiment.avg_deviance()
         );
