@@ -350,6 +350,8 @@ fn write_report<W: Write>(
         (Speed::Bullet, "drnykterstein"),
         (Speed::Bullet, "penguingim1"),
         (Speed::Blitz, "lance5500"),
+        (Speed::Blitz, "somethingpretentious"),
+        (Speed::Classical, "igormezentsev"),
     ] {
         if let Some(rating) = players.get(name).and_then(|player_id| {
             experiments
@@ -361,7 +363,7 @@ fn write_report<W: Write>(
         }) {
             writeln!(
                 writer,
-                "Sample {:?} rating of {}: {} (rd: {}, vola: {})",
+                "# Sample {:?} rating of {}: {} (rd: {}, vola: {})",
                 speed,
                 name,
                 f64::from(rating.rating),
