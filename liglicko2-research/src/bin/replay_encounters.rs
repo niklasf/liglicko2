@@ -234,6 +234,12 @@ impl Experiment {
         Instant(timestamp as f64 / (60.0 * 60.0 * 24.0) * self.rating_periods_per_day)
     }
 
+    fn batch_encounters(&mut self, encounters: &[Encounter]) {
+        for encounter in encounters {
+            self.encounter(encounter);
+        }
+    }
+
     fn encounter(&mut self, encounter: &Encounter) {
         let now = self.to_instant(encounter.date_time);
         let leaderboard = self.leaderboard.get_mut(encounter.speed);
@@ -313,6 +319,7 @@ fn main() -> Result<(), Box<dyn StdError>> {
     let mut players = PlayerIds::default();
 
     let mut total_encounters: u64 = 0;
+    let mut batch = Vec::new();
     for encounter in reader.deserialize() {
         total_encounters += 1;
         if total_encounters % 10_000 == 0 {
@@ -321,7 +328,7 @@ fn main() -> Result<(), Box<dyn StdError>> {
 
         let encounter: RawEncounter = encounter?;
 
-        let encounter = Encounter {
+        batch.push(Encounter {
             white: players.get_or_insert(encounter.white),
             black: players.get_or_insert(encounter.black),
             white_score: match encounter.result.white_score() {
@@ -330,11 +337,18 @@ fn main() -> Result<(), Box<dyn StdError>> {
             },
             speed: encounter.time_control.speed(),
             date_time: encounter.date_time,
-        };
+        });
 
-        for experiment in &mut experiments {
-            experiment.encounter(&encounter);
+        if batch.len() > 1000 {
+            for experiment in &mut experiments {
+                experiment.batch_encounters(&batch);
+            }
+            batch.clear();
         }
+    }
+
+    for experiment in &mut experiments {
+        experiment.batch_encounters(&batch);
     }
 
     experiments.sort_by_key(|experiment| OrderedFloat(-experiment.total_deviance.total()));
