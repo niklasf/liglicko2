@@ -1,19 +1,15 @@
-use ordered_float::OrderedFloat;
-use rayon::prelude::*;
-use rustc_hash::FxHashMap;
-use std::fs::File;
-use std::io::Write;
-use std::{error::Error as StdError, io, str::FromStr};
+use std::{error::Error as StdError, fs::File, io, io::Write, str::FromStr};
 
 use chrono::NaiveDateTime;
 use compensated_summation::KahanBabuskaNeumaier;
-use liglicko2::{deviance, Volatility};
-use liglicko2::{Instant, Rating, RatingDifference, RatingSystem, Score};
+use liglicko2::{deviance, Instant, Rating, RatingDifference, RatingSystem, Score, Volatility};
+use mimalloc::MiMalloc;
+use ordered_float::OrderedFloat;
+use rayon::prelude::*;
+use rustc_hash::FxHashMap;
 use serde::Deserialize;
 use serde_with::{serde_as, DisplayFromStr};
 use thiserror::Error;
-
-use mimalloc::MiMalloc;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
