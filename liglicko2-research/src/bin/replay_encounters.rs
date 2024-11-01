@@ -88,6 +88,17 @@ struct BySpeed<T> {
 }
 
 impl<T> BySpeed<T> {
+    fn get(&self, speed: Speed) -> &T {
+        match speed {
+            Speed::UltraBullet => &self.ultra_bullet,
+            Speed::Bullet => &self.bullet,
+            Speed::Blitz => &self.blitz,
+            Speed::Rapid => &self.rapid,
+            Speed::Classical => &self.classical,
+            Speed::Correspondence => &self.correspondence,
+        }
+    }
+
     fn get_mut(&mut self, speed: Speed) -> &mut T {
         match speed {
             Speed::UltraBullet => &mut self.ultra_bullet,
@@ -197,6 +208,10 @@ impl PlayerIds {
     fn get_or_insert(&mut self, name: String) -> PlayerId {
         let next_id = PlayerId(self.inner.len());
         *self.inner.entry(name.into_boxed_str()).or_insert(next_id)
+    }
+
+    fn get(&self, name: &str) -> Option<PlayerId> {
+        self.inner.get(name).copied()
     }
 
     fn len(&self) -> usize {
@@ -309,7 +324,7 @@ fn write_report<W: Write>(
         "min_deviation,max_deviation,default_volatility,tau,first_advantage,preview_opponent_deviation,rating_periods_per_day,avg_deviance"
     )?;
 
-    for experiment in experiments {
+    for experiment in experiments.iter() {
         writeln!(
             writer,
             "{},{},{},{},{},{},{},{}",
@@ -327,6 +342,34 @@ fn write_report<W: Write>(
         total_errors += experiment.errors;
     }
 
+    writeln!(writer, "# ---")?;
+    for (speed, name) in [
+        (Speed::Blitz, "thibault"),
+        (Speed::Blitz, "german11"),
+        (Speed::Bullet, "revoof"),
+        (Speed::Bullet, "drnykterstein"),
+        (Speed::Bullet, "penguingim1"),
+        (Speed::Blitz, "lance5500"),
+    ] {
+        if let Some(rating) = players.get(name).and_then(|player_id| {
+            experiments
+                .last()
+                .expect("at least one experiment")
+                .leaderboard
+                .get(speed)
+                .get(player_id)
+        }) {
+            writeln!(
+                writer,
+                "Sample {:?} rating of {}: {} (rd: {}, vola: {})",
+                speed,
+                name,
+                f64::from(rating.rating),
+                f64::from(rating.deviation),
+                f64::from(rating.volatility)
+            )?;
+        }
+    }
     writeln!(writer, "# ---")?;
     writeln!(writer, "# Distinct players: {}", players.len())?;
     writeln!(
