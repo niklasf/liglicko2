@@ -25,6 +25,7 @@ impl From<InternalRatingDifference> for RatingDifference {
 }
 
 impl InternalRatingDifference {
+    #[inline]
     pub fn clamp(
         self,
         InternalRatingDifference(min): InternalRatingDifference,

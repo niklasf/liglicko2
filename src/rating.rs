@@ -22,6 +22,7 @@ impl From<f64> for RatingScalar {
 }
 
 impl RatingScalar {
+    #[inline]
     pub fn clamp(self, min: RatingScalar, max: RatingScalar) -> RatingScalar {
         RatingScalar(self.0.clamp(min.0, max.0))
     }
@@ -87,14 +88,17 @@ impl From<f64> for RatingDifference {
 }
 
 impl RatingDifference {
+    #[inline]
     pub fn clamp(self, min: RatingDifference, max: RatingDifference) -> RatingDifference {
         RatingDifference(self.0.clamp(min.0, max.0))
     }
 
+    #[inline]
     pub fn abs(self) -> RatingDifference {
         RatingDifference(self.0.abs())
     }
 
+    #[inline]
     pub(crate) fn to_internal(self) -> InternalRatingDifference {
         InternalRatingDifference::from(self)
     }
@@ -187,6 +191,7 @@ impl Neg for RatingDifference {
 pub struct Volatility(pub f64);
 
 impl Volatility {
+    #[inline]
     pub fn clamp(self, min: Volatility, max: Volatility) -> Volatility {
         Volatility(self.0.clamp(min.0, max.0))
     }

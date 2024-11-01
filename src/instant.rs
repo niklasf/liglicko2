@@ -6,18 +6,21 @@ use std::ops::{Add, AddAssign, Sub, SubAssign};
 pub struct Instant(pub f64);
 
 impl From<Instant> for f64 {
+    #[inline]
     fn from(Instant(instant): Instant) -> f64 {
         instant
     }
 }
 
 impl From<f64> for Instant {
+    #[inline]
     fn from(value: f64) -> Instant {
         Instant(value)
     }
 }
 
 impl Instant {
+    #[inline]
     pub fn elapsed_since(self, since: Instant) -> Periods {
         Periods(self.0 - since.0)
     }
@@ -26,6 +29,7 @@ impl Instant {
 impl Sub for Instant {
     type Output = Periods;
 
+    #[inline]
     fn sub(self, rhs: Instant) -> Periods {
         Periods(self.0 - rhs.0)
     }
@@ -34,12 +38,14 @@ impl Sub for Instant {
 impl Add<Periods> for Instant {
     type Output = Instant;
 
+    #[inline]
     fn add(self, rhs: Periods) -> Instant {
         Instant(self.0 + rhs.0)
     }
 }
 
 impl AddAssign<Periods> for Instant {
+    #[inline]
     fn add_assign(&mut self, rhs: Periods) {
         self.0 += rhs.0;
     }
@@ -48,12 +54,14 @@ impl AddAssign<Periods> for Instant {
 impl Sub<Periods> for Instant {
     type Output = Instant;
 
+    #[inline]
     fn sub(self, rhs: Periods) -> Instant {
         Instant(self.0 - rhs.0)
     }
 }
 
 impl SubAssign<Periods> for Instant {
+    #[inline]
     fn sub_assign(&mut self, rhs: Periods) {
         self.0 -= rhs.0;
     }
@@ -64,12 +72,14 @@ impl SubAssign<Periods> for Instant {
 pub struct Periods(pub f64);
 
 impl From<Periods> for f64 {
+    #[inline]
     fn from(Periods(period): Periods) -> f64 {
         period
     }
 }
 
 impl From<f64> for Periods {
+    #[inline]
     fn from(value: f64) -> Periods {
         Periods(value)
     }
@@ -78,12 +88,14 @@ impl From<f64> for Periods {
 impl Add for Periods {
     type Output = Periods;
 
+    #[inline]
     fn add(self, rhs: Periods) -> Periods {
         Periods(self.0 + rhs.0)
     }
 }
 
 impl AddAssign for Periods {
+    #[inline]
     fn add_assign(&mut self, rhs: Periods) {
         self.0 += rhs.0;
     }
@@ -92,12 +104,14 @@ impl AddAssign for Periods {
 impl Sub for Periods {
     type Output = Periods;
 
+    #[inline]
     fn sub(self, rhs: Periods) -> Periods {
         Periods(self.0 - rhs.0)
     }
 }
 
 impl SubAssign for Periods {
+    #[inline]
     fn sub_assign(&mut self, rhs: Periods) {
         self.0 -= rhs.0;
     }
