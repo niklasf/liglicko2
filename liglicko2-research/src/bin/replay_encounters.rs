@@ -3,7 +3,7 @@ use std::{error::Error as StdError, io, str::FromStr};
 
 use chrono::{DateTime, NaiveDateTime, Utc};
 use compensated_summation::KahanBabuskaNeumaier;
-use liglicko2::deviance;
+use liglicko2::{deviance, Volatility};
 use liglicko2::{Instant, Rating, RatingDifference, RatingSystem, Score};
 use serde::Deserialize;
 use serde_with::{serde_as, DisplayFromStr};
@@ -199,14 +199,31 @@ impl Experiment {
 fn main() -> Result<(), Box<dyn StdError>> {
     let mut experiments = Vec::new();
 
-    for preview_opponent_deviation in [true, false] {
-        experiments.push(Experiment {
-            rating_system: RatingSystem::builder()
-                .preview_opponent_deviation(preview_opponent_deviation)
-                .build(),
-            rating_periods_per_day: 0.21436,
-            ..Default::default()
-        });
+    for min_deviation in [40.0, 45.0, 50.0] {
+        for max_deviation in [450.0, 500.0, 550.0] {
+            for default_volatility in [0.08, 0.09, 0.1] {
+                for tau in [0.6, 0.75, 0.9] {
+                    for first_advantage in [0.0, 8.0, 11.0] {
+                        for preview_opponent_deviation in [true, false] {
+                            for rating_periods_per_day in [0.2, 0.21436, 0.23] {
+                                experiments.push(Experiment {
+                                    rating_system: RatingSystem::builder()
+                                        .min_deviation(RatingDifference(min_deviation))
+                                        .max_deviation(RatingDifference(max_deviation))
+                                        .default_volatility(Volatility(default_volatility))
+                                        .tau(tau)
+                                        .first_advantage(RatingDifference(first_advantage))
+                                        .preview_opponent_deviation(preview_opponent_deviation)
+                                        .build(),
+                                    rating_periods_per_day,
+                                    ..Default::default()
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     println!("# Experiments: {}", experiments.len());
