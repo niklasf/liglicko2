@@ -68,8 +68,7 @@ dependencies = [
 [[package]]
 name = "compensated-summation"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed1a3144e513c51ca811317ee1255c50200e4d87d4719d31beecef44cca71469"
+source = "git+https://github.com/niklasf/compensated-summation?branch=feat/default#bc09da76bb26fcb29fe2721c11fe80a1bb937b38"
 dependencies = [
  "num-traits",
 ]
@@ -260,6 +259,7 @@ dependencies = [
  "compensated-summation",
  "csv",
  "liglicko2",
+ "rustc-hash",
  "serde",
  "serde_with",
  "thiserror",
@@ -321,6 +321,12 @@ checksum = "b5b9d34b8991d19d98081b46eacdd8eb58c6f2b201139f7c5f643cc155a633af"
 dependencies = [
  "proc-macro2",
 ]
+
+[[package]]
+name = "rustc-hash"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "583034fd73374156e66797ed8e5b0d5690409c9226b22d87cb7f19821c05d152"
 
 [[package]]
 name = "ryu"

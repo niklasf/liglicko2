@@ -1,4 +1,5 @@
-use std::{collections::BTreeMap, error::Error as StdError, io, str::FromStr};
+use rustc_hash::FxHashMap;
+use std::{error::Error as StdError, io, str::FromStr};
 
 use chrono::{DateTime, NaiveDateTime, Utc};
 use compensated_summation::KahanBabuskaNeumaier;
@@ -71,6 +72,7 @@ enum Speed {
     Correspondence,
 }
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum GameResult {
     Unknown,
     WhiteWins,
@@ -132,69 +134,80 @@ struct Encounter {
     time_control: TimeControl,
 }
 
+#[derive(Default)]
+struct Experiment {
+    rating_system: RatingSystem,
+    leaderboard: FxHashMap<(String, Speed), Rating>,
+    total_deviance: KahanBabuskaNeumaier<f64>,
+    total_games: u64,
+}
+
+impl Experiment {
+    fn to_instant(&self, date_time: &UtcDateTime) -> Instant {
+        Instant(date_time.0.timestamp() as f64 / (60.0 * 60.0 * 24.0) * 0.21436)
+    }
+
+    fn encounter(&mut self, encounter: &Encounter) {
+        let Some(actual_score) = encounter.result.white_score() else {
+            return;
+        };
+        let speed = encounter.time_control.speed();
+        let now = self.to_instant(&encounter.date_time);
+
+        let white = self
+            .leaderboard
+            .get(&(encounter.white.clone(), speed))
+            .cloned()
+            .unwrap_or_else(|| self.rating_system.new_rating());
+
+        let black = self
+            .leaderboard
+            .get(&(encounter.black.clone(), speed))
+            .cloned()
+            .unwrap_or_else(|| self.rating_system.new_rating());
+
+        self.total_deviance += deviance(
+            self.rating_system.expected_score(&white, &black, now),
+            actual_score,
+        );
+        self.total_games += 1;
+
+        let (white, black) = self
+            .rating_system
+            .update_ratings(&white, &black, actual_score, now)
+            .unwrap();
+
+        self.leaderboard
+            .insert((encounter.white.clone(), speed), white);
+        self.leaderboard
+            .insert((encounter.black.clone(), speed), black);
+    }
+
+    fn avg_deviance(&self) -> f64 {
+        self.total_deviance.total() / self.total_games as f64
+    }
+}
+
 fn main() -> Result<(), Box<dyn StdError>> {
-    let rating_system = RatingSystem::builder()
-        .preview_opponent_deviation(true)
-        .first_advantage(RatingDifference(8.0))
-        .build();
-    let mut leaderboard: BTreeMap<(String, Speed), Rating> = BTreeMap::new();
+    let mut experiment = Experiment {
+        rating_system: RatingSystem::builder()
+            .preview_opponent_deviation(true)
+            .first_advantage(RatingDifference(8.0))
+            .build(),
+        ..Default::default()
+    };
 
     let mut reader = csv::ReaderBuilder::new()
         .has_headers(false)
         .from_reader(io::stdin().lock());
 
-    let to_instant = |date_time: UtcDateTime| {
-        Instant(date_time.0.timestamp() as f64 / (60.0 * 60.0 * 24.0) * 0.21436)
-    };
-
-    let mut total_deviance = KahanBabuskaNeumaier::new();
-    let mut total_games: u64 = 0;
-
     for encounter in reader.deserialize() {
         let encounter: Encounter = encounter?;
-        let Some(actual_score) = encounter.result.white_score() else {
-            continue;
-        };
-        let speed = encounter.time_control.speed();
-        let now = to_instant(encounter.date_time);
-
-        let white = leaderboard
-            .get(&(encounter.white.clone(), speed))
-            .cloned()
-            .unwrap_or_else(|| rating_system.new_rating());
-
-        let black = leaderboard
-            .get(&(encounter.black.clone(), speed))
-            .cloned()
-            .unwrap_or_else(|| rating_system.new_rating());
-
-        total_deviance += deviance(
-            rating_system.expected_score(&white, &black, now),
-            actual_score,
-        );
-        total_games += 1;
-
-        let (white, black) = rating_system
-            .update_ratings(&white, &black, actual_score, now)
-            .unwrap();
-
-        leaderboard.insert((encounter.white, speed), white);
-        leaderboard.insert((encounter.black, speed), black);
+        experiment.encounter(&encounter);
     }
 
-    //for ((player, speed), rating) in leaderboard {
-    //    println!(
-    //        "{},{:?},{},{},{}",
-    //        player, speed, rating.rating.0, rating.deviation.0, rating.volatility.0
-    //    );
-    //}
-    //
-    //println!("---");
-    println!("Total games: {}", total_games);
-    println!(
-        "Average deviance: {}",
-        total_deviance.total() / total_games as f64
-    );
+    println!("total_games,avg_deviance");
+    println!("{},{}", experiment.total_games, experiment.avg_deviance());
 
     Ok(())
 }
