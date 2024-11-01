@@ -1,5 +1,6 @@
+use hashbrown::HashMap;
 use ordered_float::OrderedFloat;
-use rustc_hash::FxHashMap;
+use rustc_hash::FxBuildHasher;
 use std::{error::Error as StdError, io, str::FromStr};
 
 use chrono::{DateTime, NaiveDateTime, Utc};
@@ -162,7 +163,7 @@ struct Encounter {
 struct Experiment {
     rating_system: RatingSystem,
     rating_periods_per_day: f64,
-    leaderboard: BySpeed<FxHashMap<Box<str>, Rating>>,
+    leaderboard: BySpeed<HashMap<Box<str>, Rating, FxBuildHasher>>,
     total_deviance: KahanBabuskaNeumaier<f64>,
     total_games: u64,
     errors: u64,
@@ -207,8 +208,12 @@ impl Experiment {
                 )
             });
 
-        leaderboard.insert(encounter.white.clone().into(), white);
-        leaderboard.insert(encounter.black.clone().into(), black);
+        leaderboard
+            .entry_ref(encounter.white.as_str())
+            .insert(white);
+        leaderboard
+            .entry_ref(encounter.black.as_str())
+            .insert(black);
     }
 
     fn avg_deviance(&self) -> f64 {
