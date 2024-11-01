@@ -336,7 +336,6 @@ impl RatingSystem {
     /// Errors if the internal iterative algorithm does not converge within
     /// the maximum number of iterations. Will not happen when using default
     /// parameters for the rating system.
-    #[must_use]
     pub fn update_ratings(
         &self,
         first: &Rating,
