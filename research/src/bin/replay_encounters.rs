@@ -9,6 +9,7 @@ use rustc_hash::FxHashMap;
 use serde::Deserialize;
 use serde_with::{serde_as, DisplayFromStr};
 use thiserror::Error;
+use uuid::Uuid;
 
 #[global_allocator]
 static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
@@ -385,6 +386,8 @@ fn write_report<W: Write>(
 }
 
 fn main() -> Result<(), Box<dyn StdError>> {
+    let process_uuid = Uuid::now_v7();
+
     let mut experiments = Vec::new();
 
     for min_deviation in [40.0, 45.0, 50.0] {
@@ -425,7 +428,8 @@ fn main() -> Result<(), Box<dyn StdError>> {
 
     let mut process_batch = |batch: &mut Vec<Encounter>,
                              players: &PlayerIds,
-                             last_date_time: UtcDateTime|
+                             last_date_time: UtcDateTime,
+                             final_batch: bool|
      -> io::Result<()> {
         experiments
             .par_iter_mut()
@@ -435,7 +439,11 @@ fn main() -> Result<(), Box<dyn StdError>> {
 
         experiments.sort_by_key(Experiment::sort_key);
         write_report(
-            File::create("report.csv")?,
+            File::create(format!(
+                "{}report-{}.csv",
+                if final_batch { "" } else { "progress-" },
+                process_uuid
+            ))?,
             players,
             &mut experiments,
             last_date_time,
@@ -461,11 +469,11 @@ fn main() -> Result<(), Box<dyn StdError>> {
         });
 
         if batch.len() >= 100_000 {
-            process_batch(&mut batch, &players, last_date_time)?;
+            process_batch(&mut batch, &players, last_date_time, false)?;
         }
     }
 
-    process_batch(&mut batch, &players, last_date_time)?;
+    process_batch(&mut batch, &players, last_date_time, true)?;
 
     Ok(())
 }
