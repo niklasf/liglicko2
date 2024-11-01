@@ -140,11 +140,12 @@ struct Experiment {
     leaderboard: FxHashMap<(String, Speed), Rating>,
     total_deviance: KahanBabuskaNeumaier<f64>,
     total_games: u64,
+    rating_periods_per_day: f64,
 }
 
 impl Experiment {
     fn to_instant(&self, date_time: &UtcDateTime) -> Instant {
-        Instant(date_time.0.timestamp() as f64 / (60.0 * 60.0 * 24.0) * 0.21436)
+        Instant(date_time.0.timestamp() as f64 / (60.0 * 60.0 * 24.0) * self.rating_periods_per_day)
     }
 
     fn encounter(&mut self, encounter: &Encounter) {
@@ -189,13 +190,14 @@ impl Experiment {
 }
 
 fn main() -> Result<(), Box<dyn StdError>> {
-    let mut experiment = Experiment {
+    let mut experiments = [Experiment {
         rating_system: RatingSystem::builder()
             .preview_opponent_deviation(true)
             .first_advantage(RatingDifference(8.0))
             .build(),
+        rating_periods_per_day: 0.21436,
         ..Default::default()
-    };
+    }];
 
     let mut reader = csv::ReaderBuilder::new()
         .has_headers(false)
@@ -203,11 +205,26 @@ fn main() -> Result<(), Box<dyn StdError>> {
 
     for encounter in reader.deserialize() {
         let encounter: Encounter = encounter?;
-        experiment.encounter(&encounter);
+        for experiment in &mut experiments {
+            experiment.encounter(&encounter);
+        }
     }
 
-    println!("total_games,avg_deviance");
-    println!("{},{}", experiment.total_games, experiment.avg_deviance());
+    println!("min_deviation,max_deviation,default_volatility,tau,first_advantage,rating_periods_per_day,preview_opponent_deviation,total_games,avg_deviance");
+    for experiment in experiments {
+        println!(
+            "{},{},{},{},{},{},{},{},{}",
+            f64::from(experiment.rating_system.min_deviation()),
+            f64::from(experiment.rating_system.max_deviation()),
+            f64::from(experiment.rating_system.default_volatility()),
+            experiment.rating_system.tau(),
+            f64::from(experiment.rating_system.first_advantage()),
+            experiment.rating_periods_per_day,
+            experiment.rating_system.preview_opponent_deviation(),
+            experiment.total_games,
+            experiment.avg_deviance()
+        );
+    }
 
     Ok(())
 }
