@@ -431,8 +431,7 @@ impl RatingSystem {
         }
 
         // Step 5.5
-        let sigma_prime =
-            Volatility(f64::exp(big_a / 2.0)).clamp(self.min_volatility, self.max_volatility);
+        let sigma_prime = Volatility(f64::exp(big_a / 2.0));
 
         // Step 6
         let phi_star = new_deviation(
@@ -442,11 +441,7 @@ impl RatingSystem {
         );
 
         // Step 7
-        let phi_prime = InternalRatingDifference(1.0 / f64::sqrt(1.0 / phi_star.sq() + 1.0 / v))
-            .clamp(
-                self.min_deviation.to_internal(),
-                self.max_deviation.to_internal(),
-            );
+        let phi_prime = InternalRatingDifference(1.0 / f64::sqrt(1.0 / phi_star.sq() + 1.0 / v));
         let mu_prime_diff =
             InternalRatingDifference(phi_prime.sq() * their_g * Score::value(score - expected));
 
