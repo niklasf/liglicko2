@@ -1,6 +1,6 @@
-use std::{error::Error as StdError, fs::File, io, io::Write, str::FromStr};
+use std::{error::Error as StdError, fmt, fs::File, io, io::Write, str::FromStr};
 
-use chrono::NaiveDateTime;
+use chrono::{DateTime, NaiveDateTime};
 use compensated_summation::KahanBabuskaNeumaier;
 use liglicko2::{deviance, Instant, Rating, RatingDifference, RatingSystem, Score, Volatility};
 use mimalloc::MiMalloc;
@@ -137,7 +137,7 @@ impl GameResult {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 struct UtcDateTime(i64);
 
 impl FromStr for UtcDateTime {
@@ -149,6 +149,18 @@ impl FromStr for UtcDateTime {
                 .and_utc()
                 .timestamp(),
         ))
+    }
+}
+
+impl fmt::Display for UtcDateTime {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            DateTime::from_timestamp(self.0, 0)
+                .unwrap_or_default()
+                .naive_utc()
+        )
     }
 }
 
@@ -287,6 +299,7 @@ fn write_report<W: Write>(
     mut writer: W,
     players: &PlayerIds,
     experiments: &mut [Experiment],
+    last_date_time: UtcDateTime,
 ) -> io::Result<()> {
     let mut num_encounters = 0;
     let mut total_errors = 0;
@@ -316,7 +329,11 @@ fn write_report<W: Write>(
 
     writeln!(writer, "# ---")?;
     writeln!(writer, "# Distinct players: {}", players.len())?;
-    writeln!(writer, "# Processed encounters: {}", num_encounters)?;
+    writeln!(
+        writer,
+        "# Processed encounters: {} (last at: {})",
+        num_encounters, last_date_time
+    )?;
     writeln!(writer, "# Total errors: {}", total_errors)?;
     writeln!(writer, "# ---")?;
 
@@ -362,7 +379,10 @@ fn main() -> Result<(), Box<dyn StdError>> {
 
     let mut batch = Vec::new();
 
-    let mut process_batch = |batch: &mut Vec<Encounter>, players: &PlayerIds| -> io::Result<()> {
+    let mut process_batch = |batch: &mut Vec<Encounter>,
+                             players: &PlayerIds,
+                             last_date_time: UtcDateTime|
+     -> io::Result<()> {
         experiments
             .par_iter_mut()
             .for_each(|experiment| experiment.batch_encounters(&batch));
@@ -370,10 +390,17 @@ fn main() -> Result<(), Box<dyn StdError>> {
         batch.clear();
 
         experiments.sort_by_key(Experiment::sort_key);
-        write_report(File::create("report.csv")?, &players, &mut experiments)?;
-        write_report(io::stdout(), &players, &mut experiments)?;
+        write_report(
+            File::create("report.csv")?,
+            &players,
+            &mut experiments,
+            last_date_time,
+        )?;
+        write_report(io::stdout(), &players, &mut experiments, last_date_time)?;
         Ok(())
     };
+
+    let mut last_date_time = UtcDateTime::default();
 
     for encounter in reader.deserialize() {
         let encounter: RawEncounter = encounter?;
@@ -389,12 +416,14 @@ fn main() -> Result<(), Box<dyn StdError>> {
             utc_date_time: encounter.utc_date_time,
         });
 
+        last_date_time = encounter.utc_date_time;
+
         if batch.len() >= 100_000 {
-            process_batch(&mut batch, &players)?;
+            process_batch(&mut batch, &players, last_date_time)?;
         }
     }
 
-    process_batch(&mut batch, &players)?;
+    process_batch(&mut batch, &players, last_date_time)?;
 
     Ok(())
 }
