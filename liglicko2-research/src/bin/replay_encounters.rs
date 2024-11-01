@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, error::Error as StdError, io, str::FromStr};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use compensated_summation::KahanBabuskaNeumaier;
 use liglicko2::deviance;
-use liglicko2::{Instant, Rating, RatingSystem, Score};
+use liglicko2::{Instant, Rating, RatingDifference, RatingSystem, Score};
 use serde::Deserialize;
 use serde_with::{serde_as, DisplayFromStr};
 use thiserror::Error;
@@ -72,6 +72,7 @@ enum Speed {
 }
 
 enum GameResult {
+    Unknown,
     WhiteWins,
     BlackWins,
     Draw,
@@ -89,18 +90,20 @@ impl FromStr for GameResult {
             "1-0" => GameResult::WhiteWins,
             "0-1" => GameResult::BlackWins,
             "1/2-1/2" => GameResult::Draw,
+            "*" => GameResult::Unknown,
             _ => return Err(InvalidGameResult),
         })
     }
 }
 
 impl GameResult {
-    fn white_score(self) -> Score {
-        match self {
+    fn white_score(self) -> Option<Score> {
+        Some(match self {
             GameResult::WhiteWins => Score::WIN,
             GameResult::BlackWins => Score::LOSS,
             GameResult::Draw => Score::DRAW,
-        }
+            GameResult::Unknown => return None,
+        })
     }
 }
 
@@ -130,7 +133,10 @@ struct Encounter {
 }
 
 fn main() -> Result<(), Box<dyn StdError>> {
-    let rating_system = RatingSystem::new();
+    let rating_system = RatingSystem::builder()
+        .preview_opponent_deviation(true)
+        .first_advantage(RatingDifference(8.0))
+        .build();
     let mut leaderboard: BTreeMap<(String, Speed), Rating> = BTreeMap::new();
 
     let mut reader = csv::ReaderBuilder::new()
@@ -146,8 +152,10 @@ fn main() -> Result<(), Box<dyn StdError>> {
 
     for encounter in reader.deserialize() {
         let encounter: Encounter = encounter?;
+        let Some(actual_score) = encounter.result.white_score() else {
+            continue;
+        };
         let speed = encounter.time_control.speed();
-        let actual_score = encounter.result.white_score();
         let now = to_instant(encounter.date_time);
 
         let white = leaderboard
@@ -174,14 +182,14 @@ fn main() -> Result<(), Box<dyn StdError>> {
         leaderboard.insert((encounter.black, speed), black);
     }
 
-    for ((player, speed), rating) in leaderboard {
-        println!(
-            "{},{:?},{},{},{}",
-            player, speed, rating.rating.0, rating.deviation.0, rating.volatility.0
-        );
-    }
-
-    println!("---");
+    //for ((player, speed), rating) in leaderboard {
+    //    println!(
+    //        "{},{:?},{},{},{}",
+    //        player, speed, rating.rating.0, rating.deviation.0, rating.volatility.0
+    //    );
+    //}
+    //
+    //println!("---");
     println!("Total games: {}", total_games);
     println!(
         "Average deviance: {}",
