@@ -1,3 +1,4 @@
+use ordered_float::OrderedFloat;
 use rustc_hash::FxHashMap;
 use std::{error::Error as StdError, io, str::FromStr};
 
@@ -244,6 +245,8 @@ fn main() -> Result<(), Box<dyn StdError>> {
             experiment.encounter(&encounter);
         }
     }
+
+    experiments.sort_by_key(|experiment| OrderedFloat(-experiment.total_deviance.total()));
 
     println!("# Total encounters: {}", total_encounters);
     println!("min_deviation,max_deviation,default_volatility,tau,first_advantage,rating_periods_per_day,preview_opponent_deviation,errors,avg_deviance");
