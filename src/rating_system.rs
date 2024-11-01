@@ -378,7 +378,7 @@ impl RatingSystem {
             },
         ));
         let expected =
-            expectation_value((us.rating + advantage - them.rating).to_internal(), their_g);
+            expectation_value((us.rating - them.rating + advantage).to_internal(), their_g);
         let v = 1.0 / (their_g.powi(2) * expected.value() * expected.opposite().value());
 
         // Step 4
@@ -474,7 +474,7 @@ impl RatingSystem {
 }
 
 fn g(deviation: InternalRatingDifference) -> f64 {
-    1.0 / (1.0 + 3.0 * deviation.sq() / PI.powi(2)).sqrt()
+    1.0 / f64::sqrt(1.0 + 3.0 * deviation.sq() / PI.powi(2))
 }
 
 fn expectation_value(
