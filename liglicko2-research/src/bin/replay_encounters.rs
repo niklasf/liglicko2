@@ -171,16 +171,6 @@ struct Encounter {
     speed: Speed,
 }
 
-#[derive(Default)]
-struct Experiment {
-    rating_system: RatingSystem,
-    rating_periods_per_day: f64,
-    leaderboard: BySpeed<FxHashMap<PlayerId, Rating>>,
-    total_deviance: KahanBabuskaNeumaier<f64>,
-    total_games: u64,
-    errors: u64,
-}
-
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 struct PlayerId(usize);
 
@@ -196,6 +186,42 @@ impl PlayerIds {
     }
 }
 
+struct ByPlayerId<T> {
+    inner: Vec<Option<T>>,
+}
+
+impl<T> Default for ByPlayerId<T> {
+    fn default() -> Self {
+        ByPlayerId { inner: Vec::new() }
+    }
+}
+
+impl<T> ByPlayerId<T> {
+    fn get(&self, PlayerId(id): PlayerId) -> Option<&T> {
+        match self.inner.get(id) {
+            Some(Some(t)) => Some(t),
+            _ => None,
+        }
+    }
+
+    fn set(&mut self, PlayerId(id): PlayerId, value: T) {
+        if self.inner.len() <= id {
+            self.inner.resize_with(id + 1, || None);
+        }
+        self.inner[id] = Some(value);
+    }
+}
+
+#[derive(Default)]
+struct Experiment {
+    rating_system: RatingSystem,
+    rating_periods_per_day: f64,
+    leaderboard: BySpeed<ByPlayerId<Rating>>,
+    total_deviance: KahanBabuskaNeumaier<f64>,
+    total_games: u64,
+    errors: u64,
+}
+
 impl Experiment {
     fn to_instant(&self, timestamp: i64) -> Instant {
         Instant(timestamp as f64 / (60.0 * 60.0 * 24.0) * self.rating_periods_per_day)
@@ -206,12 +232,12 @@ impl Experiment {
         let leaderboard = self.leaderboard.get_mut(encounter.speed);
 
         let white = leaderboard
-            .get(&encounter.white)
+            .get(encounter.white)
             .cloned()
             .unwrap_or_else(|| self.rating_system.new_rating());
 
         let black = leaderboard
-            .get(&encounter.black)
+            .get(encounter.black)
             .cloned()
             .unwrap_or_else(|| self.rating_system.new_rating());
 
@@ -232,8 +258,8 @@ impl Experiment {
                 )
             });
 
-        leaderboard.insert(encounter.white, white);
-        leaderboard.insert(encounter.black, black);
+        leaderboard.set(encounter.white, white);
+        leaderboard.set(encounter.black, black);
     }
 
     fn avg_deviance(&self) -> f64 {
