@@ -11,6 +11,11 @@ use serde::Deserialize;
 use serde_with::{serde_as, DisplayFromStr};
 use thiserror::Error;
 
+use mimalloc::MiMalloc;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
+
 #[derive(Debug)]
 enum TimeControl {
     Clock { limit: u32, increment: u32 },
