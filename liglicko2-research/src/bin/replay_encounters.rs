@@ -137,10 +137,11 @@ struct Encounter {
 #[derive(Default)]
 struct Experiment {
     rating_system: RatingSystem,
+    rating_periods_per_day: f64,
     leaderboard: FxHashMap<(String, Speed), Rating>,
     total_deviance: KahanBabuskaNeumaier<f64>,
     total_games: u64,
-    rating_periods_per_day: f64,
+    errors: u64,
 }
 
 impl Experiment {
@@ -176,7 +177,13 @@ impl Experiment {
         let (white, black) = self
             .rating_system
             .update_ratings(&white, &black, actual_score, now)
-            .unwrap();
+            .unwrap_or_else(|_| {
+                self.errors += 1;
+                (
+                    self.rating_system.new_rating(),
+                    self.rating_system.new_rating(),
+                )
+            });
 
         self.leaderboard
             .insert((encounter.white.clone(), speed), white);
@@ -210,10 +217,10 @@ fn main() -> Result<(), Box<dyn StdError>> {
         }
     }
 
-    println!("min_deviation,max_deviation,default_volatility,tau,first_advantage,rating_periods_per_day,preview_opponent_deviation,total_games,avg_deviance");
+    println!("min_deviation,max_deviation,default_volatility,tau,first_advantage,rating_periods_per_day,preview_opponent_deviation,total_games,errors,avg_deviance");
     for experiment in experiments {
         println!(
-            "{},{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{},{}",
             f64::from(experiment.rating_system.min_deviation()),
             f64::from(experiment.rating_system.max_deviation()),
             f64::from(experiment.rating_system.default_volatility()),
@@ -222,6 +229,7 @@ fn main() -> Result<(), Box<dyn StdError>> {
             experiment.rating_periods_per_day,
             experiment.rating_system.preview_opponent_deviation(),
             experiment.total_games,
+            experiment.errors,
             experiment.avg_deviance()
         );
     }
