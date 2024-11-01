@@ -2,7 +2,7 @@ use ordered_float::OrderedFloat;
 use rustc_hash::FxHashMap;
 use std::{error::Error as StdError, io, str::FromStr};
 
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::NaiveDateTime;
 use compensated_summation::KahanBabuskaNeumaier;
 use liglicko2::{deviance, Volatility};
 use liglicko2::{Instant, Rating, RatingDifference, RatingSystem, Score};
@@ -138,14 +138,17 @@ impl GameResult {
     }
 }
 
-struct UtcDateTime(DateTime<Utc>);
+#[derive(Debug, Copy, Clone)]
+struct UtcDateTime(i64);
 
 impl FromStr for UtcDateTime {
     type Err = chrono::ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(UtcDateTime(
-            NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S")?.and_utc(),
+            NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S")?
+                .and_utc()
+                .timestamp(),
         ))
     }
 }
@@ -167,7 +170,7 @@ struct Encounter {
     white: PlayerId,
     black: PlayerId,
     white_score: Score,
-    timestamp: i64,
+    date_time: UtcDateTime,
     speed: Speed,
 }
 
@@ -223,12 +226,12 @@ struct Experiment {
 }
 
 impl Experiment {
-    fn to_instant(&self, timestamp: i64) -> Instant {
+    fn to_instant(&self, UtcDateTime(timestamp): UtcDateTime) -> Instant {
         Instant(timestamp as f64 / (60.0 * 60.0 * 24.0) * self.rating_periods_per_day)
     }
 
     fn encounter(&mut self, encounter: &Encounter) {
-        let now = self.to_instant(encounter.timestamp);
+        let now = self.to_instant(encounter.date_time);
         let leaderboard = self.leaderboard.get_mut(encounter.speed);
 
         let white = leaderboard
@@ -322,7 +325,7 @@ fn main() -> Result<(), Box<dyn StdError>> {
                 None => continue,
             },
             speed: encounter.time_control.speed(),
-            timestamp: encounter.date_time.0.timestamp(),
+            date_time: encounter.date_time,
         };
 
         for experiment in &mut experiments {
