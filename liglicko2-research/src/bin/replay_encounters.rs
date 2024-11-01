@@ -160,7 +160,7 @@ struct RawEncounter {
     #[serde_as(as = "DisplayFromStr")]
     result: GameResult,
     #[serde_as(as = "DisplayFromStr")]
-    date_time: UtcDateTime,
+    utc_date_time: UtcDateTime,
     #[serde_as(as = "DisplayFromStr")]
     time_control: TimeControl,
 }
@@ -169,7 +169,7 @@ struct Encounter {
     white: PlayerId,
     black: PlayerId,
     white_score: Score,
-    date_time: UtcDateTime,
+    utc_date_time: UtcDateTime,
     speed: Speed,
 }
 
@@ -244,7 +244,7 @@ impl Experiment {
     }
 
     fn encounter(&mut self, encounter: &Encounter) {
-        let now = self.to_instant(encounter.date_time);
+        let now = self.to_instant(encounter.utc_date_time);
         let leaderboard = self.leaderboard.get_mut(encounter.speed);
 
         let white = leaderboard
@@ -356,9 +356,7 @@ fn main() -> Result<(), Box<dyn StdError>> {
     println!("# Parallel experiments: {}", experiments.len());
     println!("# ---");
 
-    let mut reader = csv::ReaderBuilder::new()
-        .has_headers(false)
-        .from_reader(io::stdin().lock());
+    let mut reader = csv::Reader::from_reader(io::stdin().lock());
 
     let mut players = PlayerIds::default();
 
@@ -388,10 +386,10 @@ fn main() -> Result<(), Box<dyn StdError>> {
                 None => continue,
             },
             speed: encounter.time_control.speed(),
-            date_time: encounter.date_time,
+            utc_date_time: encounter.utc_date_time,
         });
 
-        if batch.len() > 100_000 {
+        if batch.len() >= 100_000 {
             process_batch(&mut batch, &players)?;
         }
     }

@@ -16,6 +16,8 @@ fn main() -> io::Result<()> {
 
     let mut stdout = BufWriter::new(io::stdout().lock());
 
+    writeln!(stdout, "white,black,result,utc_date_time,time_control")?;
+
     let mut white = String::new();
     let mut black = String::new();
     let mut result = String::new();
