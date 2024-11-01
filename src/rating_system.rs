@@ -40,6 +40,8 @@ pub struct RatingSystemBuilder {
 
     convergence_tolerance: f64,
     max_convergence_iterations: u32,
+
+    max_rating_delta: RatingDifference,
 }
 
 impl RatingSystemBuilder {
@@ -135,6 +137,14 @@ impl RatingSystemBuilder {
         self
     }
 
+    /// Set the maximum rating step that a single game can cause. The default
+    /// is `700.0`.
+    pub fn max_rating_delta(&mut self, max_rating_delta: RatingDifference) -> &mut Self {
+        assert!(max_rating_delta >= RatingDifference(0.0));
+        self.max_rating_delta = max_rating_delta;
+        self
+    }
+
     pub fn build(&self) -> RatingSystem {
         assert!(self.min_rating <= self.max_rating);
         assert!(self.min_deviation <= self.max_deviation);
@@ -160,6 +170,8 @@ impl RatingSystemBuilder {
 
             convergence_tolerance: self.convergence_tolerance,
             max_convergence_iterations: self.max_convergence_iterations,
+
+            max_rating_delta: self.max_rating_delta,
         }
     }
 }
@@ -191,6 +203,8 @@ pub struct RatingSystem {
 
     convergence_tolerance: f64,
     max_convergence_iterations: u32,
+
+    max_rating_delta: RatingDifference,
 }
 
 impl Default for RatingSystem {
@@ -226,6 +240,8 @@ impl RatingSystem {
 
             convergence_tolerance: 1e-6,
             max_convergence_iterations: 1000,
+
+            max_rating_delta: RatingDifference(700.0),
         }
     }
 
@@ -283,6 +299,10 @@ impl RatingSystem {
 
     pub fn max_convergence_iterations(&self) -> u32 {
         self.max_convergence_iterations
+    }
+
+    pub fn max_rating_delta(&self) -> RatingDifference {
+        self.max_rating_delta
     }
 
     /// Construct an initial rating for a new player.
@@ -447,7 +467,9 @@ impl RatingSystem {
 
         // Step 8
         Ok(self.clamp_rating(&Rating {
-            rating: us.rating + mu_prime_diff.into(),
+            rating: us.rating
+                + RatingDifference::from(mu_prime_diff)
+                    .clamp(-self.max_rating_delta, self.max_rating_delta),
             deviation: RatingDifference::from(phi_prime),
             volatility: sigma_prime,
             at: now,
