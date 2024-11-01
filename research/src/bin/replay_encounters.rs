@@ -244,6 +244,10 @@ impl<T> ByPlayerId<T> {
         }
         self.inner[id] = Some(value);
     }
+
+    fn table(&self) -> &[Option<T>] {
+        &self.inner
+    }
 }
 
 #[derive(Default)]
@@ -309,6 +313,23 @@ impl Experiment {
     fn avg_deviance(&self) -> f64 {
         self.total_deviance.total() / self.total_games as f64
     }
+
+    fn estimate_median_rating(&self, speed: Speed) -> Option<f64> {
+        let mut samples = Vec::new();
+
+        let table = self.leaderboard.get(speed).table();
+        let mut i = 0;
+        while i < table.len() {
+            if let Some(rating) = &table[i] {
+                samples.push(OrderedFloat(f64::from(rating.rating)));
+            }
+            i += 4139;
+        }
+
+        samples.sort_unstable();
+
+        samples.get(samples.len() / 2).copied().map(f64::from)
+    }
 }
 
 fn write_report<W: Write>(
@@ -373,6 +394,15 @@ fn write_report<W: Write>(
             )?;
         }
     }
+    writeln!(writer, "# ---")?;
+    writeln!(
+        writer,
+        "# Estimated Blitz median: {:?}",
+        experiments
+            .last()
+            .expect("at least one experiment")
+            .estimate_median_rating(Speed::Blitz)
+    )?;
     writeln!(writer, "# ---")?;
     writeln!(writer, "# Distinct players: {}", players.len())?;
     writeln!(
