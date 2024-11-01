@@ -1,4 +1,5 @@
 use ordered_float::OrderedFloat;
+use rayon::prelude::*;
 use rustc_hash::FxHashMap;
 use std::{error::Error as StdError, io, str::FromStr};
 
@@ -340,16 +341,16 @@ fn main() -> Result<(), Box<dyn StdError>> {
         });
 
         if batch.len() > 1000 {
-            for experiment in &mut experiments {
-                experiment.batch_encounters(&batch);
-            }
+            experiments
+                .par_iter_mut()
+                .for_each(|experiment| experiment.batch_encounters(&batch));
             batch.clear();
         }
     }
 
-    for experiment in &mut experiments {
-        experiment.batch_encounters(&batch);
-    }
+    experiments
+        .par_iter_mut()
+        .for_each(|experiment| experiment.batch_encounters(&batch));
 
     experiments.sort_by_key(|experiment| OrderedFloat(-experiment.total_deviance.total()));
 
