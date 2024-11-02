@@ -8,4 +8,5 @@ license = "APACHE-2.0 or MIT"
 authors = ["Niklas Fiekas <niklas.fiekas@backscattering.de>"]
 categories = ["game-development", "mathematics"]
 keywords = ["chess", "lichess", "glicko-2"]
+exclude = ["/research"]
 edition = "2021"
