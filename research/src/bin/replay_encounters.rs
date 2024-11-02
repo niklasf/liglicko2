@@ -406,6 +406,7 @@ fn write_report<W: Write>(
         (Speed::Bullet, "penguingim1"),
         (Speed::Blitz, "lance5500"),
         (Speed::Blitz, "somethingpretentious"),
+        (Speed::Blitz, "tbest"),
         (Speed::Classical, "igormezentsev"),
     ] {
         if let Some(rating) = players
@@ -428,7 +429,7 @@ fn write_report<W: Write>(
         Speed::UltraBullet,
         Speed::Bullet,
         Speed::Blitz,
-        Speed::Bullet,
+        Speed::Rapid,
         Speed::Classical,
         Speed::Correspondence,
     ] {

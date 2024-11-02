@@ -40,6 +40,8 @@ pub struct RatingSystemBuilder {
     max_convergence_iterations: u32,
 
     max_rating_delta: RatingDifference,
+
+    regulator_factor: f64,
 }
 
 impl RatingSystemBuilder {
@@ -161,6 +163,8 @@ impl RatingSystemBuilder {
             max_convergence_iterations: self.max_convergence_iterations,
 
             max_rating_delta: self.max_rating_delta,
+
+            regulator_factor: self.regulator_factor,
         }
     }
 }
@@ -192,6 +196,8 @@ pub struct RatingSystem {
     max_convergence_iterations: u32,
 
     max_rating_delta: RatingDifference,
+
+    regulator_factor: f64,
 }
 
 impl Default for RatingSystem {
@@ -227,6 +233,8 @@ impl RatingSystem {
             max_convergence_iterations: 1000,
 
             max_rating_delta: RatingDifference(700.0),
+
+            regulator_factor: 1.02, // XXX
         }
     }
 
@@ -444,14 +452,22 @@ impl RatingSystem {
 
         // Step 8
         Ok(self.clamp_rating(&Rating {
-            rating: us.rating
-                + mu_prime_diff
-                    .to_external()
-                    .clamp(-self.max_rating_delta, self.max_rating_delta),
+            rating: self.regulate(us.rating, mu_prime_diff.to_external()),
             deviation: phi_prime.to_external(),
             volatility: sigma_prime,
             at: now,
         }))
+    }
+
+    fn regulate(&self, rating: RatingScalar, delta: RatingDifference) -> RatingScalar {
+        let factor =
+            if delta > RatingDifference(0.0) && rating < self.default_rating + self.max_deviation {
+                self.regulator_factor
+            } else {
+                1.0
+            };
+
+        rating + (factor * delta).clamp(-self.max_rating_delta, self.max_rating_delta)
     }
 
     fn clamp_rating(&self, rating: &Rating) -> Rating {
