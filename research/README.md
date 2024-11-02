@@ -76,3 +76,21 @@ min_deviation,max_deviation,default_volatility,tau,first_advantage,rating_period
 The most important part is the `avg_deviance` column, which is indicates
 the predictive power of the rating system with the given parameters
 (lower is better).
+
+PGO
+---
+
+Profile-guided optimization can be used to create a faster `./replay_encounters`
+binary.
+
+```sh
+# Install dependencies
+rustup component add llvm-tools-preview
+cargo install cargo-pgo
+
+# Check dependencies (bolt not needed)
+cargo pgo info
+
+# Build with PGO
+./pgo.sh
+```
