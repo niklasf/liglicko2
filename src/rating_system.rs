@@ -138,6 +138,14 @@ impl RatingSystemBuilder {
         self
     }
 
+    /// Factor by which to nudge rating gains to counteract natural deflation.
+    /// Defaults to `1.02`.
+    pub fn regulator_factor(&mut self, regulator_factor: f64) -> &mut Self {
+        assert!(regulator_factor >= 0.0);
+        self.regulator_factor = regulator_factor;
+        self
+    }
+
     pub fn build(&self) -> RatingSystem {
         assert!(self.min_rating <= self.max_rating);
         assert!(self.min_deviation <= self.max_deviation);
@@ -234,7 +242,7 @@ impl RatingSystem {
 
             max_rating_delta: RatingDifference(700.0),
 
-            regulator_factor: 1.02, // XXX
+            regulator_factor: 1.02,
         }
     }
 
@@ -292,6 +300,10 @@ impl RatingSystem {
 
     pub fn max_rating_delta(&self) -> RatingDifference {
         self.max_rating_delta
+    }
+
+    pub fn regulator_factor(&self) -> f64 {
+        self.regulator_factor
     }
 
     /// Construct an initial rating for a new player.
@@ -460,12 +472,11 @@ impl RatingSystem {
     }
 
     fn regulate(&self, rating: RatingScalar, delta: RatingDifference) -> RatingScalar {
-        let factor =
-            if delta > RatingDifference(0.0) && rating < self.default_rating + self.max_deviation {
-                self.regulator_factor
-            } else {
-                1.0
-            };
+        let factor = if delta > RatingDifference(0.0) && rating != self.default_rating {
+            self.regulator_factor
+        } else {
+            1.0
+        };
 
         rating + (factor * delta).clamp(-self.max_rating_delta, self.max_rating_delta)
     }
