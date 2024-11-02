@@ -55,6 +55,11 @@ let expected_score = system.expected_score(&alice, &bob, now);
 assert!(Score(0.84) < expected_score);
 ```
 
+Research
+--------
+
+See `resarch/` for utilities to evaluate rating systems on real-world data.
+
 License
 -------
 
