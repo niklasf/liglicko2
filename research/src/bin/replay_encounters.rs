@@ -479,7 +479,6 @@ fn main() -> Result<(), Box<dyn StdError>> {
                         for &rating_periods_per_day in &opt.rating_periods_per_day {
                             experiments.push(Experiment {
                                 rating_system: RatingSystem::builder()
-                                    .rating_regulator_factor(1.0)
                                     .min_rating(RatingScalar(-f64::INFINITY))
                                     .max_rating(RatingScalar(f64::INFINITY))
                                     .min_deviation(RatingDifference(min_deviation))

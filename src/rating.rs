@@ -102,7 +102,7 @@ impl RatingDifference {
 
     #[inline]
     pub(crate) fn to_internal(self) -> InternalRatingDifference {
-        InternalRatingDifference::from(self)
+        InternalRatingDifference::from_external(self)
     }
 }
 
