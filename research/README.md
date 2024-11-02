@@ -29,7 +29,8 @@ See `sample-encounters.csv` for an example of the output.
 Alternatively download standard chess encounters from 2013-01 to 2024-09:
 
 ```sh
-wget https://database.lichess.org/standard-encounters-until-2024-09.csv.zst # 287G
+wget https://database.lichess.org/standard-encounters-until-2024-09.csv.zst # 73G
+pzstd -d standard-encounters-until-2024-09.csv.zst # 287G
 ```
 
 Replay
