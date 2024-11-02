@@ -327,7 +327,7 @@ impl Experiment {
                 total_rating += f64::from(rating.rating);
                 num_ratings += 1;
             }
-            i += 2000;
+            i += 1 + table.len() / 10_000;
         }
 
         total_rating.total() / num_ratings as f64
@@ -342,7 +342,7 @@ impl Experiment {
             if let Some(rating) = &table[i] {
                 samples.push(OrderedFloat(f64::from(rating.rating)));
             }
-            i += 2000;
+            i += 1 + table.len() / 10_000;
         }
 
         samples.sort_unstable();
