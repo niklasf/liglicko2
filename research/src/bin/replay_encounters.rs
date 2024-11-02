@@ -3,7 +3,9 @@ use std::{error::Error as StdError, fmt, fs::File, io, io::Write, str::FromStr};
 
 use chrono::{DateTime, NaiveDateTime};
 use compensated_summation::KahanBabuskaNeumaier;
-use liglicko2::{deviance, Instant, Rating, RatingDifference, RatingSystem, Score, Volatility};
+use liglicko2::{
+    deviance, Instant, Rating, RatingDifference, RatingScalar, RatingSystem, Score, Volatility,
+};
 use ordered_float::OrderedFloat;
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
@@ -478,6 +480,9 @@ fn main() -> Result<(), Box<dyn StdError>> {
                                         .tau(tau)
                                         .first_advantage(RatingDifference(first_advantage))
                                         .preview_opponent_deviation(preview_opponent_deviation != 0)
+                                        .min_rating(RatingScalar(-4000.0))
+                                        .default_rating(RatingScalar(0.0))
+                                        .max_rating(RatingScalar(4000.0))
                                         .build(),
                                     rating_periods_per_day,
                                     ..Default::default()

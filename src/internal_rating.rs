@@ -25,9 +25,15 @@ impl From<InternalRatingDifference> for RatingDifference {
 }
 
 impl InternalRatingDifference {
+    #[must_use]
     #[inline]
     pub fn sq(self) -> f64 {
         self.0 * self.0
+    }
+
+    #[must_use]
+    pub fn hypot(self, other: InternalRatingDifference) -> InternalRatingDifference {
+        InternalRatingDifference(f64::hypot(self.0, other.0))
     }
 }
 

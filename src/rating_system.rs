@@ -337,13 +337,10 @@ impl RatingSystem {
         let second = self.clamp_rating(second);
 
         expectation_value(
-            (first.rating + self.first_advantage - second.rating).to_internal(),
-            g(RatingDifference::to_internal(
-                if self.preview_opponent_deviation {
-                    self.preview_deviation(&second, now)
-                } else {
-                    second.deviation
-                },
+            (first.rating - second.rating + self.first_advantage).to_internal(),
+            g(InternalRatingDifference::hypot(
+                self.preview_deviation(&first, now).to_internal(),
+                self.preview_deviation(&second, now).to_internal(),
             )),
         )
     }
@@ -494,11 +491,8 @@ fn g(deviation: InternalRatingDifference) -> f64 {
     1.0 / f64::sqrt(1.0 + 3.0 * deviation.sq() / PI.powi(2))
 }
 
-fn expectation_value(
-    InternalRatingDifference(diff): InternalRatingDifference,
-    their_g: f64,
-) -> Score {
-    Score(1.0 / (1.0 + f64::exp(-their_g * diff)))
+fn expectation_value(InternalRatingDifference(diff): InternalRatingDifference, g: f64) -> Score {
+    Score(1.0 / (1.0 + f64::exp(-g * diff)))
 }
 
 fn new_deviation(

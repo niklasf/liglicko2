@@ -22,6 +22,7 @@ impl From<f64> for RatingScalar {
 }
 
 impl RatingScalar {
+    #[must_use]
     #[inline]
     pub fn clamp(self, min: RatingScalar, max: RatingScalar) -> RatingScalar {
         RatingScalar(self.0.clamp(min.0, max.0))
@@ -88,6 +89,7 @@ impl From<f64> for RatingDifference {
 }
 
 impl RatingDifference {
+    #[must_use]
     #[inline]
     pub fn clamp(self, min: RatingDifference, max: RatingDifference) -> RatingDifference {
         RatingDifference(self.0.clamp(min.0, max.0))
@@ -191,6 +193,7 @@ impl Neg for RatingDifference {
 pub struct Volatility(pub f64);
 
 impl Volatility {
+    #[must_use]
     #[inline]
     pub fn clamp(self, min: Volatility, max: Volatility) -> Volatility {
         Volatility(self.0.clamp(min.0, max.0))
