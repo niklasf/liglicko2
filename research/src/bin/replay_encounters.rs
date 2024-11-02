@@ -370,19 +370,18 @@ fn write_report<W: Write>(
 
     writeln!(
         writer,
-        "min_deviation,max_deviation,default_volatility,tau,first_advantage,preview_opponent_deviation,rating_periods_per_day,avg_deviance"
+        "min_deviation,max_deviation,default_volatility,tau,first_advantage,rating_periods_per_day,avg_deviance"
     )?;
 
     for experiment in experiments.iter() {
         writeln!(
             writer,
-            "{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{}",
             f64::from(experiment.rating_system.min_deviation()),
             f64::from(experiment.rating_system.max_deviation()),
             f64::from(experiment.rating_system.default_volatility()),
             experiment.rating_system.tau(),
             f64::from(experiment.rating_system.first_advantage()),
-            experiment.rating_system.preview_opponent_deviation(),
             experiment.rating_periods_per_day,
             experiment.avg_deviance()
         )?;
@@ -461,8 +460,6 @@ struct Opt {
     tau: Vec<f64>,
     #[clap(long, value_delimiter = ',', num_args = 1.., default_value = "0")]
     first_advantage: Vec<f64>,
-    #[clap(long, value_delimiter = ',', num_args = 1.., default_value = "1")]
-    preview_opponent_deviation: Vec<u8>,
     #[clap(long, value_delimiter = ',', num_args = 1.., default_value = "0.21436")]
     rating_periods_per_day: Vec<f64>,
 }
@@ -479,24 +476,21 @@ fn main() -> Result<(), Box<dyn StdError>> {
             for &default_volatility in &opt.default_volatility {
                 for &tau in &opt.tau {
                     for &first_advantage in &opt.first_advantage {
-                        for &preview_opponent_deviation in &opt.preview_opponent_deviation {
-                            for &rating_periods_per_day in &opt.rating_periods_per_day {
-                                experiments.push(Experiment {
-                                    rating_system: RatingSystem::builder()
-                                        .rating_regulator_factor(1.0)
-                                        .min_rating(RatingScalar(-f64::INFINITY))
-                                        .max_rating(RatingScalar(f64::INFINITY))
-                                        .min_deviation(RatingDifference(min_deviation))
-                                        .max_deviation(RatingDifference(max_deviation))
-                                        .default_volatility(Volatility(default_volatility))
-                                        .tau(tau)
-                                        .first_advantage(RatingDifference(first_advantage))
-                                        .preview_opponent_deviation(preview_opponent_deviation != 0)
-                                        .build(),
-                                    rating_periods_per_day,
-                                    ..Default::default()
-                                });
-                            }
+                        for &rating_periods_per_day in &opt.rating_periods_per_day {
+                            experiments.push(Experiment {
+                                rating_system: RatingSystem::builder()
+                                    .rating_regulator_factor(1.0)
+                                    .min_rating(RatingScalar(-f64::INFINITY))
+                                    .max_rating(RatingScalar(f64::INFINITY))
+                                    .min_deviation(RatingDifference(min_deviation))
+                                    .max_deviation(RatingDifference(max_deviation))
+                                    .default_volatility(Volatility(default_volatility))
+                                    .tau(tau)
+                                    .first_advantage(RatingDifference(first_advantage))
+                                    .build(),
+                                rating_periods_per_day,
+                                ..Default::default()
+                            });
                         }
                     }
                 }

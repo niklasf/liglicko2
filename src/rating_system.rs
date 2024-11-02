@@ -34,8 +34,6 @@ pub struct RatingSystemBuilder {
 
     first_advantage: RatingDifference,
 
-    preview_opponent_deviation: bool,
-
     tau: f64,
 
     convergence_tolerance: f64,
@@ -115,13 +113,6 @@ impl RatingSystemBuilder {
         self
     }
 
-    /// Set whether to apply time decay to the second rating deviation when
-    /// updating the first rating and vice versa. The default is `false`.
-    pub fn preview_opponent_deviation(&mut self, preview_opponent_deviation: bool) -> &mut Self {
-        self.preview_opponent_deviation = preview_opponent_deviation;
-        self
-    }
-
     /// Set the tolerance for the convergence in step 5.4 of the Glicko-2
     /// algorithm. The default is `1e-6`.
     pub fn convergence_tolerance(&mut self, convergence_tolerance: f64) -> &mut Self {
@@ -173,8 +164,6 @@ impl RatingSystemBuilder {
 
             first_advantage: self.first_advantage,
 
-            preview_opponent_deviation: self.preview_opponent_deviation,
-
             tau: self.tau,
 
             convergence_tolerance: self.convergence_tolerance,
@@ -206,8 +195,6 @@ pub struct RatingSystem {
     max_deviation: RatingDifference,
 
     first_advantage: RatingDifference,
-
-    preview_opponent_deviation: bool,
 
     tau: f64,
 
@@ -244,8 +231,6 @@ impl RatingSystem {
             max_deviation: RatingDifference(500.0),
 
             first_advantage: RatingDifference(0.0),
-
-            preview_opponent_deviation: false,
 
             tau: 0.75,
 
@@ -295,10 +280,6 @@ impl RatingSystem {
 
     pub fn first_advantage(&self) -> RatingDifference {
         self.first_advantage
-    }
-
-    pub fn preview_opponent_deviation(&self) -> bool {
-        self.preview_opponent_deviation
     }
 
     pub fn tau(&self) -> f64 {
@@ -401,16 +382,13 @@ impl RatingSystem {
         advantage: RatingDifference,
     ) -> Result<Rating, ConvergenceError> {
         // Step 2
-        let phi = us.deviation.to_internal();
+        let phi = self.preview_deviation(us, now - Periods(1.0)).to_internal(); // Notable change!
 
         // Step 3
-        let their_g = g(RatingDifference::to_internal(
-            if self.preview_opponent_deviation {
-                self.preview_deviation(them, now)
-            } else {
-                them.deviation
-            },
-        ));
+        let their_g = g(self
+            .preview_deviation(them, now - Periods(1.0)) // Notable change!
+            .to_internal());
+
         let expected =
             expectation_value((us.rating - them.rating + advantage).to_internal(), their_g);
         let v = 1.0 / (their_g.powi(2) * expected.value() * expected.opposite().value());
@@ -471,7 +449,7 @@ impl RatingSystem {
         let phi_star = new_deviation(
             us.deviation.to_internal(),
             sigma_prime,
-            now.elapsed_since(us.at),
+            Periods::min(now.elapsed_since(us.at), Periods(1.0)), // Notable change!
         );
 
         // Step 7
@@ -527,7 +505,7 @@ fn new_deviation(
     elapsed: Periods,
 ) -> InternalRatingDifference {
     InternalRatingDifference(f64::sqrt(
-        deviation.sq() + f64::max(elapsed.0, 0.0) * volatility.sq(),
+        deviation.sq() + Periods::max(elapsed, Periods(0.0)).0 * volatility.sq(),
     ))
 }
 

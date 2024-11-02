@@ -85,6 +85,20 @@ impl From<f64> for Periods {
     }
 }
 
+impl Periods {
+    #[must_use]
+    #[inline]
+    pub fn max(self, other: Periods) -> Periods {
+        Periods(f64::max(self.0, other.0))
+    }
+
+    #[must_use]
+    #[inline]
+    pub fn min(self, other: Periods) -> Periods {
+        Periods(f64::min(self.0, other.0))
+    }
+}
+
 impl Add for Periods {
     type Output = Periods;
 
