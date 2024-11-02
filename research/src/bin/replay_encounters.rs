@@ -461,7 +461,7 @@ struct Opt {
     tau: Vec<f64>,
     #[clap(long, value_delimiter = ',', num_args = 1.., default_value = "0")]
     first_advantage: Vec<f64>,
-    #[clap(long, value_delimiter = ',', num_args = 1.., default_value = "0,1")]
+    #[clap(long, value_delimiter = ',', num_args = 1.., default_value = "1")]
     preview_opponent_deviation: Vec<u8>,
     #[clap(long, value_delimiter = ',', num_args = 1.., default_value = "0.21436")]
     rating_periods_per_day: Vec<f64>,
