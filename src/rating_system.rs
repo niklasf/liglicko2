@@ -42,6 +42,7 @@ pub struct RatingSystemBuilder {
     max_convergence_iterations: u32,
 
     max_rating_delta: RatingDifference,
+    rating_regulator_factor: f64,
 }
 
 impl RatingSystemBuilder {
@@ -145,6 +146,14 @@ impl RatingSystemBuilder {
         self
     }
 
+    /// Set the factor by which rating gains (but not losses) are multiplied.
+    /// The default is `1.015`.
+    pub fn rating_regulator_factor(&mut self, rating_regulator_factor: f64) -> &mut Self {
+        assert!(rating_regulator_factor >= 0.0);
+        self.rating_regulator_factor = rating_regulator_factor;
+        self
+    }
+
     pub fn build(&self) -> RatingSystem {
         assert!(self.min_rating <= self.max_rating);
         assert!(self.min_deviation <= self.max_deviation);
@@ -172,6 +181,7 @@ impl RatingSystemBuilder {
             max_convergence_iterations: self.max_convergence_iterations,
 
             max_rating_delta: self.max_rating_delta,
+            rating_regulator_factor: self.rating_regulator_factor,
         }
     }
 }
@@ -205,6 +215,7 @@ pub struct RatingSystem {
     max_convergence_iterations: u32,
 
     max_rating_delta: RatingDifference,
+    rating_regulator_factor: f64,
 }
 
 impl Default for RatingSystem {
@@ -242,6 +253,7 @@ impl RatingSystem {
             max_convergence_iterations: 1000,
 
             max_rating_delta: RatingDifference(700.0),
+            rating_regulator_factor: 1.015,
         }
     }
 
@@ -303,6 +315,10 @@ impl RatingSystem {
 
     pub fn max_rating_delta(&self) -> RatingDifference {
         self.max_rating_delta
+    }
+
+    pub fn rating_regulator_factor(&self) -> f64 {
+        self.rating_regulator_factor
     }
 
     /// Construct an initial rating for a new player.
@@ -465,12 +481,21 @@ impl RatingSystem {
         // Step 8
         Ok(self.clamp_rating(&Rating {
             rating: us.rating
-                + RatingDifference::from(mu_prime_diff)
+                + self
+                    .regulate(RatingDifference::from(mu_prime_diff))
                     .clamp(-self.max_rating_delta, self.max_rating_delta),
             deviation: RatingDifference::from(phi_prime),
             volatility: sigma_prime,
             at: now,
         }))
+    }
+
+    fn regulate(&self, diff: RatingDifference) -> RatingDifference {
+        if diff > RatingDifference(0.0) {
+            self.rating_regulator_factor * diff
+        } else {
+            diff
+        }
     }
 
     fn clamp_rating(&self, rating: &Rating) -> Rating {

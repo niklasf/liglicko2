@@ -3,9 +3,7 @@ use std::{error::Error as StdError, fmt, fs::File, io, io::Write, str::FromStr};
 
 use chrono::{DateTime, NaiveDateTime};
 use compensated_summation::KahanBabuskaNeumaier;
-use liglicko2::{
-    deviance, Instant, Rating, RatingDifference, RatingScalar, RatingSystem, Score, Volatility,
-};
+use liglicko2::{deviance, Instant, Rating, RatingDifference, RatingSystem, Score, Volatility};
 use ordered_float::OrderedFloat;
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
@@ -421,12 +419,21 @@ fn write_report<W: Write>(
         }
     }
     writeln!(writer, "# ---")?;
-    let (p1, p10, median, p90, p99) = best_experiment.estimate_percentiles(Speed::Blitz);
-    let avg = best_experiment.estimate_avg_rating(Speed::Blitz);
-    writeln!(
-        writer,
-        "# Estimated Blitz rating distribution: p1 {p1:.1}, p10 {p10:.1}, median {median:.1}, p90 {p90:.1}, p99 {p99:.1}, avg {avg:.1}",
-    )?;
+    for speed in [
+        Speed::UltraBullet,
+        Speed::Bullet,
+        Speed::Blitz,
+        Speed::Bullet,
+        Speed::Classical,
+        Speed::Correspondence,
+    ] {
+        let (p1, p10, median, p90, p99) = best_experiment.estimate_percentiles(speed);
+        let avg = best_experiment.estimate_avg_rating(speed);
+        writeln!(
+            writer,
+            "# Estimated {speed:?} distribution: p1 {p1:.1}, p10 {p10:.1}, median {median:.1}, p90 {p90:.1}, p99 {p99:.1}, avg {avg:.1}",
+        )?;
+    }
     writeln!(writer, "# ---")?;
     writeln!(writer, "# Distinct players: {}", players.len())?;
     writeln!(
@@ -480,9 +487,6 @@ fn main() -> Result<(), Box<dyn StdError>> {
                                         .tau(tau)
                                         .first_advantage(RatingDifference(first_advantage))
                                         .preview_opponent_deviation(preview_opponent_deviation != 0)
-                                        .min_rating(RatingScalar(-4000.0))
-                                        .default_rating(RatingScalar(0.0))
-                                        .max_rating(RatingScalar(4000.0))
                                         .build(),
                                     rating_periods_per_day,
                                     ..Default::default()
