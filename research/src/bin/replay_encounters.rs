@@ -555,7 +555,7 @@ fn main() -> Result<(), Box<dyn StdError>> {
             utc_date_time: encounter.utc_date_time,
         });
 
-        if batch.len() >= 100_000 {
+        if batch.len() >= 1_000_000 {
             process_batch(&mut batch, &players, last_date_time, false)?;
         }
     }
