@@ -376,7 +376,7 @@ fn write_report<W: Write>(
     for experiment in experiments.iter() {
         writeln!(
             writer,
-            "{},{},{},{},{},{},{:.5}",
+            "{},{},{},{},{},{},{:.6}",
             f64::from(experiment.rating_system.min_deviation()),
             f64::from(experiment.rating_system.max_deviation()),
             f64::from(experiment.rating_system.default_volatility()),
