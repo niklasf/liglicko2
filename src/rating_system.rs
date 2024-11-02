@@ -447,7 +447,7 @@ impl RatingSystem {
 
         // Step 6
         let phi_star = new_deviation(
-            us.deviation.to_internal(),
+            phi,
             sigma_prime,
             Periods::min(now.elapsed_since(us.at), Periods(1.0)), // Notable change!
         );
