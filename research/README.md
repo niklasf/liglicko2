@@ -52,7 +52,6 @@ Output will look something like this:
 # Parallel experiments: 4
 # ---
 min_deviation,max_deviation,default_volatility,tau,first_advantage,rating_periods_per_day,avg_deviance
-min_deviation,max_deviation,default_volatility,tau,first_advantage,rating_periods_per_day,avg_deviance
 45,500,0.09,0.75,0,0.21436,0.26833
 45,500,0.09,0.75,11,0.21436,0.26810
 30,500,0.09,0.75,0,0.21436,0.26807
