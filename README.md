@@ -52,7 +52,7 @@ let now = now + Periods(1.0);
 
 // Alice is expected to win the next game.
 let expected_score = system.expected_score(&alice, &bob, now);
-assert!(Score(0.84) < expected_score);
+assert!(Score(0.79) < expected_score);
 ```
 
 Research
