@@ -3,6 +3,17 @@ liglicko2 research utilities
 
 Utilities to evaluate rating systems on real-world data.
 
+Why work with such large data sets?
+-----------------------------------
+
+Replaying the entire history of Lichess encounters takes a long time, but
+I don't know how to avoid it.
+
+* The observed period of time should be long, because rating periods are on the
+  scale of months.
+* Its not clear that sampling players does not introduce bias (for example,
+  how often players around a specific rating meet).
+
 Encounters
 ----------
 
@@ -32,50 +43,32 @@ cat encounters.csv | cargo run --release --bin replay_encounters -- --min-deviat
 
 See `cargo run --release -- --help` for more rating system parameters.
 All combinations will be simulated, so beware of combinatorial explosion.
+Ratings of all players for all experiments for all time controls will be
+kept in memory.
 
 Output will look something like this:
 
-```
+```csv
+# Parallel experiments: 4
+# ---
 min_deviation,max_deviation,default_volatility,tau,first_advantage,rating_periods_per_day,avg_deviance
-30,500,0.09,0.75,11,0,0.28697
-30,500,0.09,0.75,11,0.001,0.28696
-30,500,0.09,0.75,11,0.05,0.28664
-30,500,0.09,0.75,11,0.1,0.28653
-30,500,0.09,0.75,11,0.21436,0.28635
-30,350,0.09,0.75,11,0,0.28605
-30,350,0.09,0.75,11,0.001,0.28605
-45,500,0.09,0.75,11,0,0.28591
-45,500,0.09,0.75,11,0.001,0.28591
-45,500,0.09,0.75,11,0.21436,0.28587
-45,500,0.09,0.75,11,0.1,0.28585
-45,500,0.09,0.75,11,0.05,0.28585
-30,350,0.09,0.75,11,0.05,0.28581
-30,350,0.09,0.75,11,0.1,0.28569
-30,350,0.09,0.75,11,0.21436,0.28549
-45,350,0.09,0.75,11,0,0.28526
-45,350,0.09,0.75,11,0.001,0.28526
-45,350,0.09,0.75,11,0.05,0.28520
-45,350,0.09,0.75,11,0.1,0.28517
-45,350,0.09,0.75,11,0.21436,0.28516
+min_deviation,max_deviation,default_volatility,tau,first_advantage,rating_periods_per_day,avg_deviance
+45,500,0.09,0.75,0,0.21436,0.26833
+45,500,0.09,0.75,11,0.21436,0.26810
+30,500,0.09,0.75,0,0.21436,0.26807
+30,500,0.09,0.75,11,0.21436,0.26784
 # ---
-# Sample Blitz rating of thibault: 1393.0 (rd: 45.000, vola: 0.08395)
-# Sample Blitz rating of german11: 1176.9 (rd: 45.000, vola: 0.08606)
-# Sample Bullet rating of revoof: 1385.7 (rd: 45.000, vola: 0.08776)
-# Sample Bullet rating of drnykterstein: 2686.5 (rd: 45.566, vola: 0.08249)
-# Sample Bullet rating of penguingim1: 2575.4 (rd: 45.000, vola: 0.07959)
-# Sample Blitz rating of lance5500: 1999.5 (rd: 45.330, vola: 0.07738)
-# Sample Blitz rating of somethingpretentious: 1659.1 (rd: 45.000, vola: 0.07559)
-# Sample Classical rating of igormezentsev: 1663.4 (rd: 205.781, vola: 0.09000)
+# Sample Blitz rating of german11: 1510.1 (rd: 30.000, vola: 0.08094)
 # ---
-# Estimated UltraBullet distribution: p1=812.7 p10=1044.0 p50=1334.1 p90=1616.9 p99=1989.0, avg=1338.6
-# Estimated Bullet distribution: p1=548.0 p10=803.2 p50=1141.5 p90=1607.1 p99=1980.3, avg=1173.7
-# Estimated Blitz distribution: p1=501.6 p10=759.9 p50=1179.4 p90=1630.3 p99=1974.8, avg=1187.8
-# Estimated Bullet distribution: p1=548.0 p10=803.2 p50=1141.5 p90=1607.1 p99=1980.3, avg=1173.7
-# Estimated Classical distribution: p1=779.0 p10=1059.3 p50=1347.8 p90=1714.3 p99=2001.4, avg=1377.6
-# Estimated Correspondence distribution: p1=1100.9 p10=1261.6 p50=1440.1 p90=1754.5 p99=2050.9, avg=1484.0
+# Estimated UltraBullet distribution: p1=NaN p10=NaN p50=NaN p90=NaN p99=NaN, avg=NaN
+# Estimated Bullet distribution: p1=763.9 p10=997.9 p50=1321.5 p90=1757.0 p99=2063.8, avg=1355.8
+# Estimated Blitz distribution: p1=809.6 p10=1074.1 p50=1375.2 p90=1817.8 p99=2175.8, avg=1422.6
+# Estimated Bullet distribution: p1=763.9 p10=997.9 p50=1321.5 p90=1757.0 p99=2063.8, avg=1355.8
+# Estimated Classical distribution: p1=966.1 p10=1182.5 p50=1423.6 p90=1872.2 p99=2200.0, avg=1490.5
+# Estimated Correspondence distribution: p1=798.0 p10=1191.6 p50=1466.0 p90=1813.7 p99=2142.0, avg=1497.7
 # ---
-# Distinct players: 5381208
-# Processed encounters: 1409000000 (last at: 2020-07-31 17:42:58)
+# Distinct players: 284931
+# Processed encounters: 18000000 (last at: 2015-03-01 13:43:26)
 # Total errors: 0
 # ---
 ```
