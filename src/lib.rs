@@ -1,9 +1,12 @@
-//! Implementation of the Lichess-flavored Glicko-2 rating system.
+//! Lichess-flavored Glicko-2 rating system system with fractional rating
+//! periods and instant rating updates.
+//!
+//! This does not (yet) exactly match the Lichess implementation.
+//! Instead, it's a proof of concept for potential improvements and parameter
+//! tweaks.
 //!
 //! See <http://glicko.net/glicko/glicko2.pdf> for a description of the
-//! original Glicko-2 rating system.
-//!
-//! Lichess has made some modifications:
+//! original Glicko-2 rating system. The following changes have been made:
 //!
 //! - Optimized default parameters based on Lichess data. Optimal parameters
 //!   depend on the application, so this will not be ideal for all use cases.
@@ -14,7 +17,7 @@
 //!   updated after each game.
 //! - Lichess keeps the time decay of rating deviations, but generalizes it
 //!   to work with fractional rating periods.
-//! - Lichess may consider an inherent advantage for the first player in a game.
+//! - Allows considering an inherent advantage for the first player in a game.
 //!
 //! # Errors
 //!

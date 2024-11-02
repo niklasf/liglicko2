@@ -376,7 +376,7 @@ fn write_report<W: Write>(
     for experiment in experiments.iter() {
         writeln!(
             writer,
-            "{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{:.5}",
             f64::from(experiment.rating_system.min_deviation()),
             f64::from(experiment.rating_system.max_deviation()),
             f64::from(experiment.rating_system.default_volatility()),
@@ -410,7 +410,7 @@ fn write_report<W: Write>(
         {
             writeln!(
                 writer,
-                "# Sample {:?} rating of {}: {} (rd: {}, vola: {})",
+                "# Sample {:?} rating of {}: {:.1} (rd: {:.3}, vola: {:.5})",
                 speed,
                 name,
                 f64::from(rating.rating),
@@ -432,7 +432,7 @@ fn write_report<W: Write>(
         let avg = best_experiment.estimate_avg_rating(speed);
         writeln!(
             writer,
-            "# Estimated {speed:?} distribution: p1 {p1:.1}, p10 {p10:.1}, median {median:.1}, p90 {p90:.1}, p99 {p99:.1}, avg {avg:.1}",
+            "# Estimated {speed:?} distribution: p1={p1:.1} p10={p10:.1} p50={median:.1} p90={p90:.1} p99={p99:.1}, avg={avg:.1}",
         )?;
     }
     writeln!(writer, "# ---")?;
