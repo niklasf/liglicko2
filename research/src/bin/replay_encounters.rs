@@ -1,9 +1,11 @@
-use clap::Parser as _;
 use std::{error::Error as StdError, fmt, fs::File, io, io::Write, str::FromStr};
 
 use chrono::{DateTime, NaiveDateTime};
+use clap::Parser as _;
 use compensated_summation::KahanBabuskaNeumaier;
-use liglicko2::{deviance, Instant, Rating, RatingDifference, RatingSystem, Score, Volatility};
+use liglicko2::{
+    deviance, Instant, Rating, RatingDifference, RatingScalar, RatingSystem, Score, Volatility,
+};
 use ordered_float::OrderedFloat;
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
@@ -481,6 +483,9 @@ fn main() -> Result<(), Box<dyn StdError>> {
                             for &rating_periods_per_day in &opt.rating_periods_per_day {
                                 experiments.push(Experiment {
                                     rating_system: RatingSystem::builder()
+                                        .rating_regulator_factor(1.0)
+                                        .min_rating(RatingScalar(-f64::INFINITY))
+                                        .max_rating(RatingScalar(f64::INFINITY))
                                         .min_deviation(RatingDifference(min_deviation))
                                         .max_deviation(RatingDifference(max_deviation))
                                         .default_volatility(Volatility(default_volatility))

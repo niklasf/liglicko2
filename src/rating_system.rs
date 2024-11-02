@@ -400,6 +400,7 @@ impl RatingSystem {
         now: Instant,
         advantage: RatingDifference,
     ) -> Result<Rating, ConvergenceError> {
+        // Step 2
         let phi = us.deviation.to_internal();
 
         // Step 3
