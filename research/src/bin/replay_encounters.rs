@@ -316,7 +316,7 @@ impl Experiment {
         self.total_deviance.total() / self.total_games as f64
     }
 
-    fn estimate_avg_rating(&self, speed: Speed) -> f64 {
+    fn estimate_avg_rating(&self, speed: Speed, at: Instant) -> f64 {
         let mut total_rating = KahanBabuskaNeumaier::default();
         let mut num_ratings: u64 = 0;
 
@@ -324,25 +324,29 @@ impl Experiment {
         let mut i = 0;
         while i < table.len() {
             if let Some(rating) = &table[i] {
-                total_rating += f64::from(rating.rating);
-                num_ratings += 1;
+                if self.rating_system.preview_deviation(rating, at) < RatingDifference(60.0) {
+                    total_rating += f64::from(rating.rating);
+                    num_ratings += 1;
+                }
             }
-            i += 1 + table.len() / 10_000;
+            i += 1 + table.len() / 100_000;
         }
 
         total_rating.total() / num_ratings as f64
     }
 
-    fn estimate_percentiles(&self, speed: Speed) -> (f64, f64, f64, f64, f64) {
+    fn estimate_percentiles(&self, speed: Speed, at: Instant) -> (f64, f64, f64, f64, f64) {
         let mut samples = Vec::new();
 
         let table = self.leaderboard.get(speed).table();
         let mut i = 0;
         while i < table.len() {
             if let Some(rating) = &table[i] {
-                samples.push(OrderedFloat(f64::from(rating.rating)));
+                if self.rating_system.preview_deviation(rating, at) < RatingDifference(60.0) {
+                    samples.push(OrderedFloat(f64::from(rating.rating)));
+                }
             }
-            i += 1 + table.len() / 10_000;
+            i += 1 + table.len() / 100_000;
         }
 
         samples.sort_unstable();
@@ -428,8 +432,10 @@ fn write_report<W: Write>(
         Speed::Classical,
         Speed::Correspondence,
     ] {
-        let (p1, p10, median, p90, p99) = best_experiment.estimate_percentiles(speed);
-        let avg = best_experiment.estimate_avg_rating(speed);
+        let (p1, p10, median, p90, p99) =
+            best_experiment.estimate_percentiles(speed, best_experiment.to_instant(last_date_time));
+        let avg =
+            best_experiment.estimate_avg_rating(speed, best_experiment.to_instant(last_date_time));
         writeln!(
             writer,
             "# Estimated {speed:?} distribution: p1={p1:.1} p10={p10:.1} p50={median:.1} p90={p90:.1} p99={p99:.1}, avg={avg:.1}",
