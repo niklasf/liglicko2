@@ -469,6 +469,9 @@ struct Opt {
     first_advantage: Vec<f64>,
     #[clap(long, value_delimiter = ',', num_args = 1.., default_value = "0.21436")]
     rating_periods_per_day: Vec<f64>,
+
+    #[clap(long, default_value = "1.02")]
+    regulator_factor: f64,
 }
 
 fn main() -> Result<(), Box<dyn StdError>> {
@@ -488,6 +491,7 @@ fn main() -> Result<(), Box<dyn StdError>> {
                                 rating_system: RatingSystem::builder()
                                     .min_rating(RatingScalar(-f64::INFINITY))
                                     .max_rating(RatingScalar(f64::INFINITY))
+                                    .regulator_factor(opt.regulator_factor)
                                     .min_deviation(RatingDifference(min_deviation))
                                     .max_deviation(RatingDifference(max_deviation))
                                     .default_volatility(Volatility(default_volatility))
