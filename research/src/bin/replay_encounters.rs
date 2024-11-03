@@ -252,14 +252,43 @@ impl<T> ByPlayerId<T> {
     }
 }
 
+#[derive(Default, Clone)]
+struct Wdl {
+    wins: u64,
+    draws: u64,
+    losses: u64,
+}
+
+#[derive(Default)]
+struct DeviationHistogram {
+    buckets: Vec<Wdl>,
+}
+
+impl DeviationHistogram {
+    pub fn record(&mut self, deviation: RatingDifference, score: Score) {
+        let bucket = f64::from(deviation).round() as usize;
+        if self.buckets.len() <= bucket {
+            self.buckets.resize_with(bucket + 1, Wdl::default);
+        }
+        match score {
+            Score::WIN => self.buckets[bucket].wins += 1,
+            Score::DRAW => self.buckets[bucket].draws += 1,
+            Score::LOSS => self.buckets[bucket].losses += 1,
+            _ => {}
+        }
+    }
+}
+
 #[derive(Default)]
 struct Experiment {
     rating_system: RatingSystem,
     rating_periods_per_day: f64,
+
     leaderboard: BySpeed<ByPlayerId<Rating>>,
     total_deviance: KahanBabuskaNeumaier<f64>,
     total_games: u64,
     errors: u64,
+    deviation_histogram: DeviationHistogram,
 }
 
 impl Experiment {
@@ -290,6 +319,11 @@ impl Experiment {
             .get(encounter.black)
             .cloned()
             .unwrap_or_else(|| self.rating_system.new_rating());
+
+        self.deviation_histogram
+            .record(white.deviation, encounter.white_score);
+        self.deviation_histogram
+            .record(black.deviation, encounter.white_score.opposite());
 
         self.total_deviance += deviance(
             self.rating_system.expected_score(&white, &black, now),
@@ -522,12 +556,14 @@ fn main() -> Result<(), Box<dyn StdError>> {
                              last_date_time: UtcDateTime,
                              final_batch: bool|
      -> io::Result<()> {
+        // Process batch
         experiments
             .par_iter_mut()
             .for_each(|experiment| experiment.batch_encounters(batch));
 
         batch.clear();
 
+        // Dump report
         experiments.sort_by_key(Experiment::sort_key);
         write_report(
             File::create(format!(
@@ -539,7 +575,30 @@ fn main() -> Result<(), Box<dyn StdError>> {
             &mut experiments,
             last_date_time,
         )?;
-        write_report(io::stdout(), players, &mut experiments, last_date_time)
+        write_report(io::stdout(), players, &mut experiments, last_date_time)?;
+
+        // Dump deviation histogram for best experiment
+        let best_experiment = experiments.last().expect("at least one experiment");
+        let mut deviation_histogram_file = File::create(format!(
+            "{}deviation-histogram-{}.csv",
+            if final_batch { "" } else { "progress-" },
+            process_uuid
+        ))?;
+        writeln!(deviation_histogram_file, "deviation,wins,draws,losses")?;
+        for (deviation, wdl) in best_experiment
+            .deviation_histogram
+            .buckets
+            .iter()
+            .enumerate()
+        {
+            writeln!(
+                deviation_histogram_file,
+                "{},{},{},{}",
+                deviation, wdl.wins, wdl.draws, wdl.losses
+            )?;
+        }
+
+        Ok(())
     };
 
     let mut last_date_time = UtcDateTime::default();
