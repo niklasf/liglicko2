@@ -1,0 +1,24 @@
+min_deviation,max_deviation,default_volatility,tau,first_advantage,rating_periods_per_day,avg_deviance
+45,500,0.09,0.75,12,0.21436,0.292354
+# ---
+# Sample Blitz rating of thibault: 1519.9 (rd: 52.802, vola: 0.08009)
+# Sample Blitz rating of german11: 1118.6 (rd: 45.000, vola: 0.09988)
+# Sample Bullet rating of revoof: 1498.6 (rd: 125.126, vola: 0.08725)
+# Sample Bullet rating of drnykterstein: 2735.7 (rd: 83.290, vola: 0.07796)
+# Sample Bullet rating of penguingim1: 2931.9 (rd: 45.000, vola: 0.08561)
+# Sample Blitz rating of lance5500: 2552.7 (rd: 55.061, vola: 0.07369)
+# Sample Blitz rating of somethingpretentious: 2001.6 (rd: 45.000, vola: 0.06358)
+# Sample Blitz rating of tbest: 2188.8 (rd: 62.481, vola: 0.08309)
+# Sample Classical rating of igormezentsev: 2459.2 (rd: 64.547, vola: 0.08856)
+# ---
+# Estimated UltraBullet distribution: p1=1255.8 p10=1391.8 p50=1712.7 p90=2175.7 p99=2296.5, avg=1745.9
+# Estimated Bullet distribution: p1=566.3 p10=874.0 p50=1446.1 p90=1991.8 p99=2375.9, avg=1443.1
+# Estimated Blitz distribution: p1=513.2 p10=801.5 p50=1347.4 p90=1842.3 p99=2197.1, avg=1339.2
+# Estimated Rapid distribution: p1=79.1 p10=413.2 p50=953.1 p90=1435.1 p99=1757.1, avg=942.5
+# Estimated Classical distribution: p1=1052.6 p10=1152.2 p50=1520.3 p90=1777.3 p99=1896.5, avg=1484.0
+# Estimated Correspondence distribution: p1=1784.1 p10=1784.1 p50=1979.0 p90=1979.0 p99=1979.0, avg=1881.6
+# ---
+# Distinct players: 18198891
+# Processed encounters: 6012388632 (last at: 2024-09-30 23:59:54)
+# Total errors: 0
+# ---
