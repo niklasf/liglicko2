@@ -274,7 +274,7 @@ impl DeviationHistogram {
             Score::WIN => self.buckets[bucket].wins += 1,
             Score::DRAW => self.buckets[bucket].draws += 1,
             Score::LOSS => self.buckets[bucket].losses += 1,
-            _ => {}
+            _ => panic!("bad score {score:?}"),
         }
     }
 }
