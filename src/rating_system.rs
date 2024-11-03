@@ -472,11 +472,12 @@ impl RatingSystem {
     }
 
     fn regulate(&self, rating: RatingScalar, delta: RatingDifference) -> RatingScalar {
-        let factor = if delta > RatingDifference(0.0) && rating != self.default_rating {
-            self.regulator_factor
-        } else {
-            1.0
-        };
+        let factor =
+            if delta > RatingDifference(0.0) && rating < self.default_rating + self.max_deviation {
+                self.regulator_factor
+            } else {
+                1.0
+            };
 
         rating + (factor * delta).clamp(-self.max_rating_delta, self.max_rating_delta)
     }
