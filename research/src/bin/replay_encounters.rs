@@ -5,10 +5,12 @@ use compensated_summation::KahanBabuskaNeumaier;
 use liglicko2::{
     deviance, Instant, Rating, RatingDifference, RatingScalar, RatingSystem, Score, Volatility,
 };
-use liglicko2_research::{BySpeed, RawEncounter, Speed, UtcDateTime};
+use liglicko2_research::{
+    encounter::{BySpeed, RawEncounter, Speed, UtcDateTime},
+    player::{ByPlayerId, PlayerId, PlayerIds},
+};
 use ordered_float::OrderedFloat;
 use rayon::prelude::*;
-use rustc_hash::FxHashMap;
 use uuid::Uuid;
 
 #[global_allocator]
@@ -20,59 +22,6 @@ struct Encounter {
     white_score: Score,
     utc_date_time: UtcDateTime,
     speed: Speed,
-}
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-struct PlayerId(usize);
-
-#[derive(Default)]
-struct PlayerIds {
-    inner: FxHashMap<Box<str>, PlayerId>,
-}
-
-impl PlayerIds {
-    fn get_or_insert(&mut self, name: String) -> PlayerId {
-        let next_id = PlayerId(self.inner.len());
-        *self.inner.entry(name.into_boxed_str()).or_insert(next_id)
-    }
-
-    fn get(&self, name: &str) -> Option<PlayerId> {
-        self.inner.get(name).copied()
-    }
-
-    fn len(&self) -> usize {
-        self.inner.len()
-    }
-}
-
-struct ByPlayerId<T> {
-    inner: Vec<Option<T>>,
-}
-
-impl<T> Default for ByPlayerId<T> {
-    fn default() -> Self {
-        ByPlayerId { inner: Vec::new() }
-    }
-}
-
-impl<T> ByPlayerId<T> {
-    fn get(&self, PlayerId(id): PlayerId) -> Option<&T> {
-        match self.inner.get(id) {
-            Some(Some(t)) => Some(t),
-            _ => None,
-        }
-    }
-
-    fn set(&mut self, PlayerId(id): PlayerId, value: T) {
-        if self.inner.len() <= id {
-            self.inner.resize_with(id + 1, || None);
-        }
-        self.inner[id] = Some(value);
-    }
-
-    fn table(&self) -> &[Option<T>] {
-        &self.inner
-    }
 }
 
 #[derive(Default, Clone)]
@@ -177,7 +126,7 @@ impl Experiment {
         let mut total_rating = KahanBabuskaNeumaier::default();
         let mut num_ratings: u64 = 0;
 
-        let table = self.leaderboard.get(speed).table();
+        let table = self.leaderboard.get(speed).values();
         let mut i = 0;
         while i < table.len() {
             if let Some(rating) = &table[i] {
@@ -195,7 +144,7 @@ impl Experiment {
     fn estimate_percentiles(&self, speed: Speed, at: Instant) -> (f64, f64, f64, f64, f64) {
         let mut samples = Vec::new();
 
-        let table = self.leaderboard.get(speed).table();
+        let table = self.leaderboard.get(speed).values();
         let mut i = 0;
         while i < table.len() {
             if let Some(rating) = &table[i] {
