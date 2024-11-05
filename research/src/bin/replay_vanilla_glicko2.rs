@@ -19,7 +19,11 @@ struct PlayerState {
 
 impl PlayerState {
     fn live_rating(&self) -> Glicko2Rating {
-        let unbounded = glicko2::new_rating(self.rating, &self.pending, 0.2);
+        let unbounded = glicko2::new_rating(self.rating, &self.pending, 0.2).unwrap_or_else(|err| {
+            println!("{}: {:?}", err, self);
+            Glicko2Rating::unrated()
+        });
+
         Glicko2Rating {
             value: unbounded.value,
             deviation: unbounded.deviation.clamp(30.0 / 173.7178, 350.0 / 173.7178),

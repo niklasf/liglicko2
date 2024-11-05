@@ -297,8 +297,7 @@ dependencies = [
 [[package]]
 name = "glicko2"
 version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47c7363f4d5d9534d6049b1b4882e32d084bae29662c05527d809968738a04c1"
+source = "git+https://github.com/niklasf/glicko2?branch=feature/convergence-error#3b45184142d8ac9a857cd2c803612ba6e0f71204"
 
 [[package]]
 name = "hashbrown"
