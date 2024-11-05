@@ -186,6 +186,13 @@ impl<T> BySpeed<T> {
     }
 
     pub fn values_mut(&mut self) -> [&mut T; 6] {
-        [&mut self.ultra_bullet, &mut self.bullet, &mut self.blitz, &mut self.rapid, &mut self.classical, &mut self.correspondence]
+        [
+            &mut self.ultra_bullet,
+            &mut self.bullet,
+            &mut self.blitz,
+            &mut self.rapid,
+            &mut self.classical,
+            &mut self.correspondence,
+        ]
     }
 }
