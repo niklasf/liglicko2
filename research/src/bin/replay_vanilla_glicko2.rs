@@ -18,9 +18,9 @@ impl PlayerState {
     fn live_rating(&self) -> Glicko2Rating {
         let unbounded = glicko2::new_rating(self.rating, &self.pending, 0.2);
         Glicko2Rating {
-            value: unbounded.value.clamp((400.0 - 1500.0) / 173.7178, (4000.0 - 1500.0) / 173.7178),
+            value: unbounded.value,
             deviation: unbounded.deviation.clamp(30.0 / 173.7178, 350.0 / 173.7178),
-            volatility: unbounded.volatility.clamp(0.01, 0.1),
+            volatility: unbounded.volatility.clamp(0.01, 0),
         }
     }
 
