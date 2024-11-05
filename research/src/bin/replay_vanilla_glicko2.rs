@@ -67,7 +67,7 @@ fn main() -> Result<(), Box<dyn StdError>> {
             }
             last_rating_period = encounter.utc_date_time; // Close enough, because encounters are dense
             println!(
-                "Rating period ending at {}: avg deviance {} over {} encounters",
+                "Rating period ending at {}: avg deviance {:.6} over {} encounters",
                 last_rating_period,
                 total_deviance.total() / total_encounters as f64,
                 total_encounters
@@ -126,7 +126,7 @@ fn main() -> Result<(), Box<dyn StdError>> {
     }
 
     println!(
-        "Final result: avg deviance {} over {} encounters",
+        "Final result: avg deviance {:.6} over {} encounters",
         total_deviance.total() / total_encounters as f64,
         total_encounters
     );
