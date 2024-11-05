@@ -295,6 +295,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "glicko2"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47c7363f4d5d9534d6049b1b4882e32d084bae29662c05527d809968738a04c1"
+
+[[package]]
 name = "hashbrown"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -408,6 +414,7 @@ dependencies = [
  "clap",
  "compensated-summation",
  "csv",
+ "glicko2",
  "liglicko2",
  "ordered-float",
  "rayon",

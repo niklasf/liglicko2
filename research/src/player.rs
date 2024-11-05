@@ -41,6 +41,19 @@ impl<T> ByPlayerId<T> {
         }
     }
 
+    pub fn get_mut_or_insert_with<F>(&mut self, PlayerId(id): PlayerId, f: F) -> &mut T
+    where
+        F: FnOnce() -> T,
+    {
+        if self.inner.len() <= id {
+            self.inner.resize_with(id + 1, || None);
+        }
+        if self.inner[id].is_none() {
+            self.inner[id] = Some(f());
+        }
+        self.inner[id].as_mut().unwrap()
+    }
+
     pub fn set(&mut self, PlayerId(id): PlayerId, value: T) {
         if self.inner.len() <= id {
             self.inner.resize_with(id + 1, || None);
@@ -50,5 +63,9 @@ impl<T> ByPlayerId<T> {
 
     pub fn values(&self) -> &[Option<T>] {
         &self.inner
+    }
+
+    pub fn values_mut(&mut self) -> &mut [Option<T>] {
+        &mut self.inner
     }
 }

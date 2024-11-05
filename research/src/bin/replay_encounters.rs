@@ -68,8 +68,8 @@ impl Experiment {
         OrderedFloat(-self.total_deviance.total())
     }
 
-    fn to_instant(&self, UtcDateTime(timestamp): UtcDateTime) -> Instant {
-        Instant(timestamp as f64 / (60.0 * 60.0 * 24.0) * self.rating_periods_per_day)
+    fn to_instant(&self, timestamp: UtcDateTime) -> Instant {
+        Instant(timestamp.as_seconds() as f64 / (60.0 * 60.0 * 24.0) * self.rating_periods_per_day)
     }
 
     fn batch_encounters(&mut self, encounters: &[Encounter]) {

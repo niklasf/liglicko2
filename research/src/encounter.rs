@@ -7,12 +7,12 @@ use serde_with::{serde_as, DisplayFromStr};
 use thiserror::Error;
 
 #[serde_as]
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct RawEncounter {
     pub white: String,
     pub black: String,
     #[serde_as(as = "DisplayFromStr")]
-    pub result: GameResult,
+    pub result: PgnResult,
     #[serde_as(as = "DisplayFromStr")]
     pub utc_date_time: UtcDateTime,
     #[serde_as(as = "DisplayFromStr")]
@@ -20,7 +20,7 @@ pub struct RawEncounter {
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum GameResult {
+pub enum PgnResult {
     Unknown,
     WhiteWins,
     BlackWins,
@@ -29,35 +29,35 @@ pub enum GameResult {
 
 #[derive(Debug, Error)]
 #[error("invalid game result")]
-pub struct InvalidGameResult;
+pub struct InvalidPgnResult;
 
-impl FromStr for GameResult {
-    type Err = InvalidGameResult;
+impl FromStr for PgnResult {
+    type Err = InvalidPgnResult;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s {
-            "1-0" => GameResult::WhiteWins,
-            "0-1" => GameResult::BlackWins,
-            "1/2-1/2" => GameResult::Draw,
-            "*" => GameResult::Unknown,
-            _ => return Err(InvalidGameResult),
+            "1-0" => PgnResult::WhiteWins,
+            "0-1" => PgnResult::BlackWins,
+            "1/2-1/2" => PgnResult::Draw,
+            "*" => PgnResult::Unknown,
+            _ => return Err(InvalidPgnResult),
         })
     }
 }
 
-impl GameResult {
+impl PgnResult {
     pub fn white_score(self) -> Option<Score> {
         Some(match self {
-            GameResult::WhiteWins => Score::WIN,
-            GameResult::BlackWins => Score::LOSS,
-            GameResult::Draw => Score::DRAW,
-            GameResult::Unknown => return None,
+            PgnResult::WhiteWins => Score::WIN,
+            PgnResult::BlackWins => Score::LOSS,
+            PgnResult::Draw => Score::DRAW,
+            PgnResult::Unknown => return None,
         })
     }
 }
 
 #[derive(Debug, Copy, Clone, Default)]
-pub struct UtcDateTime(pub i64);
+pub struct UtcDateTime(i64);
 
 impl FromStr for UtcDateTime {
     type Err = chrono::ParseError;
@@ -80,6 +80,12 @@ impl fmt::Display for UtcDateTime {
                 .unwrap_or_default()
                 .naive_utc()
         )
+    }
+}
+
+impl UtcDateTime {
+    pub fn as_seconds(self) -> i64 {
+        self.0
     }
 }
 
@@ -177,5 +183,9 @@ impl<T> BySpeed<T> {
             Speed::Classical => &mut self.classical,
             Speed::Correspondence => &mut self.correspondence,
         }
+    }
+
+    pub fn values_mut(&mut self) -> [&mut T; 6] {
+        [&mut self.ultra_bullet, &mut self.bullet, &mut self.blitz, &mut self.rapid, &mut self.classical, &mut self.correspondence]
     }
 }
