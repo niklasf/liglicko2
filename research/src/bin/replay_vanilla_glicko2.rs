@@ -16,7 +16,12 @@ struct PlayerState {
 
 impl PlayerState {
     fn live_rating(&self) -> Glicko2Rating {
-        glicko2::new_rating(self.rating, &self.pending, 0.2)
+        let unbounded = glicko2::new_rating(self.rating, &self.pending, 0.2);
+        Glicko2Rating {
+            value: unbounded.value,
+            deviation: unbounded.deviation.clamp(0.0, 350.0 / 173.7178),
+            volatility: unbounded.volatility.clamp(0.0, 1.0),
+        }
     }
 
     fn commit(&mut self) {
@@ -51,7 +56,7 @@ fn main() -> Result<(), Box<dyn StdError>> {
         let encounter: RawEncounter = encounter?;
 
         // Commit rating period
-        if encounter.utc_date_time.as_seconds() > last_rating_period.as_seconds() + 1 * 24 * 60 * 60
+        if encounter.utc_date_time.as_seconds() > last_rating_period.as_seconds() + 24 * 60 * 60
         {
             for states in states.values_mut() {
                 for state in states.values_mut() {
