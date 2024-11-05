@@ -8,6 +8,9 @@ use liglicko2_research::{
     player::{ByPlayerId, PlayerIds},
 };
 
+#[global_allocator]
+static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+
 #[derive(Debug, Default)]
 struct PlayerState {
     rating: Glicko2Rating,
