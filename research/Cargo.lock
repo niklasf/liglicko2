@@ -297,7 +297,7 @@ dependencies = [
 [[package]]
 name = "glicko2"
 version = "0.3.1"
-source = "git+https://github.com/niklasf/glicko2?branch=feature/convergence-error#3b45184142d8ac9a857cd2c803612ba6e0f71204"
+source = "git+https://github.com/niklasf/glicko2?branch=feat/convergence-error#3b45184142d8ac9a857cd2c803612ba6e0f71204"
 
 [[package]]
 name = "hashbrown"

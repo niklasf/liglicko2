@@ -8,7 +8,7 @@ chrono = "0.4.38"
 clap = { version = "4.5.20", features = ["derive"] }
 compensated-summation = { git = "https://github.com/niklasf/compensated-summation", branch = "feat/default" }
 csv = "1.3.0"
-glicko2 = { git = "https://github.com/niklasf/glicko2", branch = "feature/convergence-error" }
+glicko2 = { git = "https://github.com/niklasf/glicko2", branch = "feat/convergence-error" }
 liglicko2 = { path = ".." }
 ordered-float = "4.4.0"
 rayon = "1.10.0"
