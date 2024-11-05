@@ -46,6 +46,13 @@ fn g(deviation: f64) -> f64 {
     1.0 / f64::sqrt(1.0 + 3.0 * deviation.powi(2) / PI.powi(2))
 }
 
+fn with_offset(rating: Glicko2Rating, offset: f64) -> Glicko2Rating {
+    Glicko2Rating {
+        value: rating.value + offset,
+        ..rating
+    }
+}
+
 fn main() -> Result<(), Box<dyn StdError>> {
     let mut reader = csv::Reader::from_reader(io::stdin().lock());
 
@@ -59,8 +66,7 @@ fn main() -> Result<(), Box<dyn StdError>> {
         let encounter: RawEncounter = encounter?;
 
         // Commit rating period
-        if encounter.utc_date_time.as_seconds() > last_rating_period.as_seconds() + 24 * 60 * 60
-        {
+        if encounter.utc_date_time.as_seconds() > last_rating_period.as_seconds() + 24 * 60 * 60 {
             for states in states.values_mut() {
                 for state in states.values_mut() {
                     if let Some(state) = state {
@@ -87,9 +93,12 @@ fn main() -> Result<(), Box<dyn StdError>> {
                 states
                     .get(white)
                     .map_or_else(Glicko2Rating::unrated, |state| state.live_rating()),
-                states
-                    .get(black)
-                    .map_or_else(Glicko2Rating::unrated, |state| state.live_rating()),
+                with_offset(
+                    states
+                        .get(black)
+                        .map_or_else(Glicko2Rating::unrated, |state| state.live_rating()),
+                    -12.0 / 173.7178,
+                ),
             ),
             if let Some(actual) = encounter.result.white_score() {
                 actual
@@ -100,12 +109,18 @@ fn main() -> Result<(), Box<dyn StdError>> {
         total_encounters += 1;
 
         // Record game result as pending in rating period
-        let white_rating = states
-            .get(white)
-            .map_or_else(Glicko2Rating::unrated, |state| state.rating);
-        let black_rating = states
-            .get(black)
-            .map_or_else(Glicko2Rating::unrated, |state| state.rating);
+        let white_rating = with_offset(
+            states
+                .get(white)
+                .map_or_else(Glicko2Rating::unrated, |state| state.rating),
+            12.0 / 173.7178,
+        );
+        let black_rating = with_offset(
+            states
+                .get(black)
+                .map_or_else(Glicko2Rating::unrated, |state| state.rating),
+            -12.0 / 173.7178,
+        );
 
         states
             .get_mut_or_insert_with(white, PlayerState::default)
