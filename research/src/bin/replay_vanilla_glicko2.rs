@@ -16,7 +16,7 @@ struct PlayerState {
 
 impl PlayerState {
     fn live_rating(&self) -> Glicko2Rating {
-        glicko2::new_rating(self.rating, &self.pending, 1.2)
+        glicko2::new_rating(self.rating, &self.pending, 0.2)
     }
 
     fn commit(&mut self) {
@@ -25,18 +25,11 @@ impl PlayerState {
     }
 }
 
-fn to_internal(diff: f64) -> f64 {
-    diff / 173.7178
-}
-
 fn expectation_value(white: Glicko2Rating, black: Glicko2Rating) -> Score {
     Score(
         1.0 / (1.0
             + f64::exp(
-                -g(f64::hypot(
-                    to_internal(white.deviation),
-                    to_internal(black.deviation),
-                )) * to_internal(white.value - black.value),
+                -g(f64::hypot(white.deviation, black.deviation)) * (white.value - black.value),
             )),
     )
 }
@@ -58,7 +51,7 @@ fn main() -> Result<(), Box<dyn StdError>> {
         let encounter: RawEncounter = encounter?;
 
         // Commit rating period
-        if encounter.utc_date_time.as_seconds() > last_rating_period.as_seconds() + 7 * 24 * 60 * 60
+        if encounter.utc_date_time.as_seconds() > last_rating_period.as_seconds() + 1 * 24 * 60 * 60
         {
             for states in states.values_mut() {
                 for state in states.values_mut() {
