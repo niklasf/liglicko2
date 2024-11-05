@@ -11,6 +11,8 @@ use liglicko2_research::{
 #[global_allocator]
 static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
+const WHITE_ADVANTAGE: f64 = 12.0 / 173.7178;
+
 #[derive(Debug, Default)]
 struct PlayerState {
     rating: Glicko2Rating,
@@ -19,10 +21,11 @@ struct PlayerState {
 
 impl PlayerState {
     fn live_rating(&self) -> Glicko2Rating {
-        let unbounded = glicko2::new_rating(self.rating, &self.pending, 0.2).unwrap_or_else(|err| {
-            println!("{}: {:?}", err, self);
-            Glicko2Rating::unrated()
-        });
+        let unbounded =
+            glicko2::new_rating(self.rating, &self.pending, 0.2).unwrap_or_else(|err| {
+                println!("{}: {:?}", err, self);
+                Glicko2Rating::unrated()
+            });
 
         Glicko2Rating {
             value: unbounded.value,
@@ -41,7 +44,8 @@ fn expectation_value(white: Glicko2Rating, black: Glicko2Rating) -> Score {
     Score(
         1.0 / (1.0
             + f64::exp(
-                -g(f64::hypot(white.deviation, black.deviation)) * (white.value - black.value),
+                -g(f64::hypot(white.deviation, black.deviation))
+                    * (white.value - black.value),
             )),
     )
 }
@@ -101,7 +105,7 @@ fn main() -> Result<(), Box<dyn StdError>> {
                     states
                         .get(black)
                         .map_or_else(Glicko2Rating::unrated, |state| state.live_rating()),
-                    -12.0 / 173.7178,
+                    -WHITE_ADVANTAGE,
                 ),
             ),
             if let Some(actual) = encounter.result.white_score() {
@@ -117,13 +121,13 @@ fn main() -> Result<(), Box<dyn StdError>> {
             states
                 .get(white)
                 .map_or_else(Glicko2Rating::unrated, |state| state.rating),
-            12.0 / 173.7178,
+            WHITE_ADVANTAGE,
         );
         let black_rating = with_offset(
             states
                 .get(black)
                 .map_or_else(Glicko2Rating::unrated, |state| state.rating),
-            -12.0 / 173.7178,
+            -WHITE_ADVANTAGE,
         );
 
         states
