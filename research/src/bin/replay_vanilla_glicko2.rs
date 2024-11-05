@@ -23,7 +23,7 @@ impl PlayerState {
         Glicko2Rating {
             value: unbounded.value,
             deviation: unbounded.deviation.clamp(30.0 / 173.7178, 350.0 / 173.7178),
-            volatility: unbounded.volatility.clamp(0.01, 0),
+            volatility: unbounded.volatility.clamp(0.01, 0.1),
         }
     }
 
