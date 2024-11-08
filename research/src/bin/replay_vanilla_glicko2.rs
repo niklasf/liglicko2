@@ -1,10 +1,10 @@
 use std::{error::Error as StdError, f64::consts::PI, io};
 
 use compensated_summation::KahanBabuskaNeumaier;
-use glicko2::{GameResult, Glicko2Rating, GlickoRating};
+use glicko2::{GameResult, Glicko2Rating};
 use liglicko2::{deviance, Score};
 use liglicko2_research::{
-    encounter::{BySpeed, PgnResult, RawEncounter, Speed, UtcDateTime},
+    encounter::{BySpeed, PgnResult, RawEncounter, UtcDateTime},
     player::{ByPlayerId, PlayerIds},
 };
 use ordered_float::OrderedFloat;
@@ -39,28 +39,18 @@ impl PlayerState {
         self.rating = self.live_rating();
         self.pending.clear();
     }
-
-    fn default_with_rating(rating: f64) -> Self {
-        Self {
-            rating: Glicko2Rating {
-                value: rating,
-                ..Glicko2Rating::unrated()
-            },
-            pending: Vec::new(),
-        }
-    }
 }
 
-fn _expectation_value(white: Glicko2Rating, black: Glicko2Rating) -> Score {
+fn expectation_value(white: Glicko2Rating, black: Glicko2Rating) -> Score {
     Score(
         1.0 / (1.0
             + f64::exp(
-                -_g(f64::hypot(white.deviation, black.deviation)) * (white.value - black.value),
+                -g(f64::hypot(white.deviation, black.deviation)) * (white.value - black.value),
             )),
     )
 }
 
-fn _g(deviation: f64) -> f64 {
+fn g(deviation: f64) -> f64 {
     1.0 / f64::sqrt(1.0 + 3.0 * deviation.powi(2) / PI.powi(2))
 }
 
@@ -69,17 +59,6 @@ fn with_offset(rating: Glicko2Rating, offset: f64) -> Glicko2Rating {
         value: rating.value + offset,
         ..rating
     }
-}
-
-fn glicko_g(rd: f64) -> f64 {
-    let q = f64::ln(10.0) / 400.0;
-    1.0 / f64::sqrt(1.0 + 3.0 * q.powi(2) * rd.powi(2) / PI.powi(2))
-}
-
-fn glicko_expectation_value(white: GlickoRating, black: GlickoRating) -> Score {
-    Score(
-        1.0 / (1.0 + f64::powf(10.0, -glicko_g(f64::hypot(white.deviation, black.deviation)) * (white.value - black.value) / 400.0))
-    )
 }
 
 #[derive(Default)]
@@ -143,7 +122,6 @@ fn main() -> Result<(), Box<dyn StdError>> {
     let mut last_rating_period = UtcDateTime::default();
     let mut total_encounters: u64 = 0;
     let mut total_deviance = KahanBabuskaNeumaier::default();
-    let mut initial_rating = 0.0;
 
     println!(
         "rating_period,avg_deviance,encounters,players,{},{},{}",
@@ -156,12 +134,9 @@ fn main() -> Result<(), Box<dyn StdError>> {
         let encounter: RawEncounter = encounter?;
         let speed = encounter.time_control.speed();
 
-        if speed != Speed::Blitz {
-            continue;
-        }
-
         // Commit rating period
-        if encounter.utc_date_time.as_seconds() > last_rating_period.as_seconds() + 7 * 24 * 60 * 60 {
+        if encounter.utc_date_time.as_seconds() > last_rating_period.as_seconds() + 7 * 24 * 60 * 60
+        {
             let mut rating_stats = Stats::default();
             let mut deviation_stats = Stats::default();
             let mut volatility_stats = Stats::default();
@@ -194,11 +169,6 @@ fn main() -> Result<(), Box<dyn StdError>> {
                 deviation_stats.csv(),
                 volatility_stats.csv(),
             );
-
-            initial_rating = rating_stats.percentile(50);
-            if initial_rating.is_nan() {
-                initial_rating = 0.0;
-            }
         }
 
         // Update deviance using live ratings
@@ -207,16 +177,16 @@ fn main() -> Result<(), Box<dyn StdError>> {
         let states = states.get_mut(speed);
 
         total_deviance += deviance(
-            glicko_expectation_value(
+            expectation_value(
                 states
                     .get(white)
-                    .map_or_else(|| PlayerState::default_with_rating(initial_rating).rating, |state| state.live_rating()).into(),
+                    .map_or_else(Glicko2Rating::unrated, |state| state.live_rating()),
                 with_offset(
                     states
                         .get(black)
-                        .map_or_else(|| PlayerState::default_with_rating(initial_rating).rating, |state| state.live_rating()),
+                        .map_or_else(Glicko2Rating::unrated, |state| state.live_rating()),
                     -WHITE_ADVANTAGE,
-                ).into(),
+                ),
             ),
             if let Some(actual) = encounter.result.white_score() {
                 actual
@@ -228,22 +198,20 @@ fn main() -> Result<(), Box<dyn StdError>> {
 
         // Record game result as pending in rating period
         let white_rating = with_offset(
-            states.get(white).map_or_else(
-                || PlayerState::default_with_rating(initial_rating).rating,
-                |state| state.rating,
-            ),
+            states
+                .get(white)
+                .map_or_else(Glicko2Rating::unrated, |state| state.rating),
             WHITE_ADVANTAGE,
         );
         let black_rating = with_offset(
-            states.get(black).map_or_else(
-                || PlayerState::default_with_rating(initial_rating).rating,
-                |state| state.rating,
-            ),
+            states
+                .get(black)
+                .map_or_else(Glicko2Rating::unrated, |state| state.rating),
             -WHITE_ADVANTAGE,
         );
 
         states
-            .get_mut_or_insert_with(white, || PlayerState::default_with_rating(initial_rating))
+            .get_mut_or_insert_with(white, PlayerState::default)
             .pending
             .push(match encounter.result {
                 PgnResult::WhiteWins => GameResult::win(black_rating),
@@ -253,7 +221,7 @@ fn main() -> Result<(), Box<dyn StdError>> {
             });
 
         states
-            .get_mut_or_insert_with(black, || PlayerState::default_with_rating(initial_rating))
+            .get_mut_or_insert_with(black, PlayerState::default)
             .pending
             .push(match encounter.result {
                 PgnResult::WhiteWins => GameResult::loss(white_rating),
@@ -263,7 +231,7 @@ fn main() -> Result<(), Box<dyn StdError>> {
             });
     }
 
-    println!(
+    eprintln!(
         "Final result: avg deviance {:.6} over {} encounters",
         total_deviance.total() / total_encounters as f64,
         total_encounters
