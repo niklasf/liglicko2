@@ -9,8 +9,12 @@ Why work with such large data sets?
 Replaying the entire history of Lichess encounters takes a long time, but
 I don't know how to avoid it.
 
-* The observed period of time should be long, because rating periods are on the
-  scale of months.
+* The observed period of time should be long, because optimial rating periods
+  may or may not be on the scale of months.
+* The observed period of time should be long, because long-term changes of
+  rating distributions may be an important effect.
+* The observed period should cover important changes, like the introduction
+  of quick pairing pools at the start of 2017.
 * Its not clear that sampling players does not introduce bias (for example,
   how often players around a specific rating meet).
 
