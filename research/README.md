@@ -14,8 +14,8 @@ I don't know how to avoid it.
 * Its not clear that sampling players does not introduce bias (for example,
   how often players around a specific rating meet).
 
-Encounters
-----------
+Prepare or download encounters
+------------------------------
 
 Condense PGNs from https://database.lichess.org to CSV files with relevant
 data.
@@ -33,10 +33,25 @@ wget https://database.lichess.org/standard-encounters-until-2024-09.csv.zst # 73
 pzstd -d standard-encounters-until-2024-09.csv.zst # 287G
 ```
 
-Replay
-------
+Replay with `glicko2`
+---------------------
 
-Replay previously prepared encounters.
+Replay previously prepared encounters with the third-party `glicko2` crate,
+which implements the original Glicko-2.
+
+```sh
+cat encounters.csv | cargo run --release --bin replay_vanilla_glicko2
+```
+
+Note that the implementation is deliberately unoptimized to avoid
+possible bugs.
+
+Replay with `liglicko2`
+-----------------------
+
+Replay previously prepared encounters with the `liglicko2` implementation.
+See `../README.md` for differences from Glicko-2 and Lichess's current
+implementation.
 
 ```sh
 cat encounters.csv | cargo run --release --bin replay_encounters -- --min-deviation 30,45 --first-advantage 0,11
